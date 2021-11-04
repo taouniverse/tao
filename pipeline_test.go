@@ -17,6 +17,7 @@ package tao
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -47,9 +48,49 @@ var (
 		return errors.New("error close C")
 	}))
 	// pipeline in pipeline
-	pipeA = NewPipeline("pA")
+	pipeA = NewPipeline("pA",
+		SetPostStartTask(
+			NewPipeTask(
+				NewTask("pA.PostStart",
+					func(ctx context.Context, param Parameter) (Parameter, error) {
+						fmt.Println("this is pipeA post start")
+						return param, nil
+					}, SetClose(
+						func() error {
+							fmt.Println("this is pipeA post start close")
+							return nil
+						},
+					)))),
+		SetPreStopTask(
+			NewPipeTask(
+				NewTask("pA.PreStop",
+					func(ctx context.Context, param Parameter) (Parameter, error) {
+						fmt.Println("this is pipeA pre stop")
+						return param, nil
+					}, SetClose(
+						func() error {
+							fmt.Println("this is pipeA pre stop close")
+							return nil
+						},
+					)))),
+	)
 	pipeB = NewPipeline("pB")
-	pipe  = NewPipeline("hello")
+	pipe  = NewPipeline("hello",
+		SetPostStartTask(
+			NewPipeTask(
+				NewTask("hello.PostStart",
+					func(ctx context.Context, param Parameter) (Parameter, error) {
+						fmt.Println("this is hello post start")
+						return param, nil
+					}))),
+		SetPreStopTask(
+			NewPipeTask(
+				NewTask("hello.PreStop",
+					func(ctx context.Context, param Parameter) (Parameter, error) {
+						fmt.Println("this is hello pre stop")
+						return param, nil
+					}))),
+	)
 )
 
 func TestNewPipeline(t *testing.T) {

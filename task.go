@@ -44,14 +44,15 @@ type Task interface {
 var _ Task = (*task)(nil)
 
 // task implement of Task
-// TODO Set PostStart & PreStop
 type task struct {
 	mu sync.RWMutex
 
 	name string
 
-	fun      TaskRun
-	closeFun func() error
+	fun       TaskRun
+	closeFun  func() error
+	postStart TaskRun
+	preStop   TaskRun
 
 	result Parameter
 	err    error
@@ -85,7 +86,7 @@ func (t *task) Name() string {
 }
 
 // Run Task
-func (t *task) Run(ctx context.Context, param Parameter) error {
+func (t *task) Run(ctx context.Context, param Parameter) (err error) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
@@ -104,13 +105,29 @@ func (t *task) Run(ctx context.Context, param Parameter) error {
 	}
 
 	t.state = Running
+	defer func() {
+		// SPECIAL: result should be cloned param because it's just for this task
+		t.result = param.Clone()
+		t.err = err
+		t.state = Over
+	}()
 
-	t.result, t.err = t.fun(ctx, param)
+	if t.postStart != nil {
+		param, err = t.postStart(ctx, param)
+		if err != nil {
+			return
+		}
+	}
 
-	// SPECIAL: result should be cloned param because it's just for this task
-	t.result = t.result.Clone()
-	t.state = Over
-	return t.err
+	param, err = t.fun(ctx, param)
+	if err != nil {
+		return
+	}
+
+	if t.preStop != nil {
+		param, err = t.preStop(ctx, param)
+	}
+	return
 }
 
 // Result of Task
@@ -158,5 +175,19 @@ type TaskOption func(t *task)
 func SetClose(cf func() error) TaskOption {
 	return func(t *task) {
 		t.closeFun = cf
+	}
+}
+
+// SetPostStart of task
+func SetPostStart(tr TaskRun) TaskOption {
+	return func(t *task) {
+		t.postStart = tr
+	}
+}
+
+// SetPreStop of task
+func SetPreStop(tr TaskRun) TaskOption {
+	return func(t *task) {
+		t.preStop = tr
 	}
 }

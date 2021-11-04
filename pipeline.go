@@ -52,6 +52,8 @@ type pipeline struct {
 	tasks     []*pipeTask
 	signals   map[string]chan struct{}
 	closeChan chan func() error
+	postStart *pipeTask
+	preStop   *pipeTask
 
 	results Parameter
 	err     Error
@@ -59,14 +61,20 @@ type pipeline struct {
 }
 
 // NewPipeline constructor of Pipeline
-func NewPipeline(name string) Pipeline {
-	return &pipeline{
+func NewPipeline(name string, options ...PipelineOption) Pipeline {
+	p := &pipeline{
 		name:    name,
 		tasks:   make([]*pipeTask, 0),
 		signals: make(map[string]chan struct{}),
 		err:     nil,
 		state:   Runnable,
 	}
+
+	for _, option := range options {
+		option(p)
+	}
+
+	return p
 }
 
 // Name of Pipeline
@@ -114,22 +122,38 @@ func (p *pipeline) Run(ctx context.Context, param Parameter) error {
 	}
 
 	p.state = Running
+	defer func() {
+		p.state = Over
+	}()
+
 	// init closeChan & results when run
 	p.closeChan = make(chan func() error, len(p.tasks))
 	p.results = NewParameter()
 
+	if p.postStart != nil {
+		p.taskRun(ctx, p.postStart, param, false)
+		if p.err != nil {
+			return p.err
+		}
+	}
+
 	for _, task := range p.tasks {
 		p.wg.Add(1)
-		go p.taskRun(ctx, task, param)
+		go p.taskRun(ctx, task, param, true)
 	}
 	p.wg.Wait()
 
-	p.state = Over
+	if p.preStop != nil {
+		p.taskRun(ctx, p.preStop, param, false)
+	}
+
 	return p.err
 }
 
-func (p *pipeline) taskRun(ctx context.Context, task *pipeTask, param Parameter) {
-	defer p.wg.Done()
+func (p *pipeline) taskRun(ctx context.Context, task *pipeTask, param Parameter, async bool) {
+	if async {
+		defer p.wg.Done()
+	}
 	var err error
 
 	// waiting...
@@ -151,10 +175,12 @@ func (p *pipeline) taskRun(ctx context.Context, task *pipeTask, param Parameter)
 
 	// result
 	p.results.Set(task.Name(), task.Result())
-	// signal
-	close(p.signals[task.Name()])
-	// close fun
-	p.closeChan <- task.Close
+	if async {
+		// signal
+		close(p.signals[task.Name()])
+		// close fun
+		p.closeChan <- task.Close
+	}
 }
 
 // String context of Pipeline
@@ -180,7 +206,7 @@ func (p *pipeline) Close() error {
 	defer p.mu.Unlock()
 	var (
 		err        error
-		closeSlice = make([]func() error, 0, len(p.tasks))
+		closeSlice = make([]func() error, 0, len(p.tasks)+2)
 	)
 
 	if p.state == Running {
@@ -193,11 +219,19 @@ func (p *pipeline) Close() error {
 
 	// close chan before for range
 	close(p.closeChan)
+	if p.postStart != nil {
+		closeSlice = append(closeSlice, p.postStart.Close)
+	}
+
 	for closeFn := range p.closeChan {
 		closeSlice = append(closeSlice, closeFn)
 	}
 
-	for i := len(p.tasks) - 1; i >= 0; i-- {
+	if p.preStop != nil {
+		closeSlice = append(closeSlice, p.preStop.Close)
+	}
+
+	for i := len(closeSlice) - 1; i >= 0; i-- {
 		if e := closeSlice[i](); e != nil {
 			err = NewErrorUnWrapper(e.Error(), err)
 		}
@@ -205,4 +239,21 @@ func (p *pipeline) Close() error {
 
 	p.state = Close
 	return err
+}
+
+// PipelineOption optional function of pipeline
+type PipelineOption func(p *pipeline)
+
+// SetPostStartTask of pipeline
+func SetPostStartTask(t *pipeTask) PipelineOption {
+	return func(p *pipeline) {
+		p.postStart = t
+	}
+}
+
+// SetPreStopTask of pipeline
+func SetPreStopTask(t *pipeTask) PipelineOption {
+	return func(p *pipeline) {
+		p.preStop = t
+	}
 }

@@ -16,6 +16,7 @@ package tao
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -25,7 +26,13 @@ var (
 	taskHello = NewTask("hello", func(ctx context.Context, param Parameter) (Parameter, error) {
 		param.Set("message", "hello run")
 		return param.Clone(), nil
-	})
+	}, SetPostStart(func(ctx context.Context, param Parameter) (Parameter, error) {
+		fmt.Println("this is task post start")
+		return param, nil
+	}), SetPreStop(func(ctx context.Context, param Parameter) (Parameter, error) {
+		fmt.Println("this is task pre stop")
+		return param, nil
+	}))
 	taskError = NewTask("error", func(ctx context.Context, param Parameter) (Parameter, error) {
 		param.Set("message", "error run")
 		return param, NewError("I", "error run")
