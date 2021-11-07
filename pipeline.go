@@ -56,7 +56,7 @@ type pipeline struct {
 	preStop   *pipeTask
 
 	results Parameter
-	err     Error
+	err     ErrorTao
 	state   TaskState
 }
 

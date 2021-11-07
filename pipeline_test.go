@@ -17,7 +17,6 @@ package tao
 import (
 	"context"
 	"errors"
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -53,11 +52,11 @@ var (
 			NewPipeTask(
 				NewTask("pA.PostStart",
 					func(ctx context.Context, param Parameter) (Parameter, error) {
-						fmt.Println("this is pipeA post start")
+						Info()("this is pipeA post start")
 						return param, nil
 					}, SetClose(
 						func() error {
-							fmt.Println("this is pipeA post start close")
+							Info()("this is pipeA post start close")
 							return nil
 						},
 					)))),
@@ -65,29 +64,29 @@ var (
 			NewPipeTask(
 				NewTask("pA.PreStop",
 					func(ctx context.Context, param Parameter) (Parameter, error) {
-						fmt.Println("this is pipeA pre stop")
+						Info()("this is pipeA pre stop")
 						return param, nil
 					}, SetClose(
 						func() error {
-							fmt.Println("this is pipeA pre stop close")
+							Info()("this is pipeA pre stop close")
 							return nil
 						},
 					)))),
 	)
 	pipeB = NewPipeline("pB")
-	pipe  = NewPipeline("hello",
+	pipe  = NewPipeline("pipe",
 		SetPostStartTask(
 			NewPipeTask(
-				NewTask("hello.PostStart",
+				NewTask("pipe.PostStart",
 					func(ctx context.Context, param Parameter) (Parameter, error) {
-						fmt.Println("this is hello post start")
+						Info()("this is pipe post start")
 						return param, nil
 					}))),
 		SetPreStopTask(
 			NewPipeTask(
-				NewTask("hello.PreStop",
+				NewTask("pipe.PreStop",
 					func(ctx context.Context, param Parameter) (Parameter, error) {
-						fmt.Println("this is hello pre stop")
+						Info()("this is pipe pre stop")
 						return param, nil
 					}))),
 	)
@@ -109,7 +108,7 @@ func TestNewPipeline(t *testing.T) {
 
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
-		assert.Equal(t, ContextCanceled, pipeA.Run(ctx, NewParameter()).(Error).Code())
+		assert.Equal(t, ContextCanceled, pipeA.Run(ctx, NewParameter()).(ErrorTao).Code())
 
 		input := NewParameter()
 		input.Set("tao", "useful")
@@ -117,11 +116,11 @@ func TestNewPipeline(t *testing.T) {
 	})
 
 	t.Run("TestPipelineRun_Run_Twice", func(t *testing.T) {
-		assert.Equal(t, TaskRunTwice, pipe.Run(context.Background(), NewParameter()).(Error).Code())
+		assert.Equal(t, TaskRunTwice, pipe.Run(context.Background(), NewParameter()).(ErrorTao).Code())
 	})
 
 	t.Run("TestPipelineRun_GetName", func(t *testing.T) {
-		assert.Equal(t, "hello", pipe.Name())
+		assert.Equal(t, "pipe", pipe.Name())
 	})
 
 	t.Run("TestPipelineRun_Result", func(t *testing.T) {
@@ -157,6 +156,6 @@ func TestNewPipeline(t *testing.T) {
 
 	t.Run("TestPipelineRun_Close", func(t *testing.T) {
 		assert.NotEqual(t, nil, pipe.Close())
-		assert.Equal(t, TaskCloseTwice, pipe.Close().(Error).Code())
+		assert.Equal(t, TaskCloseTwice, pipe.Close().(ErrorTao).Code())
 	})
 }

@@ -16,7 +16,6 @@ package tao
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -25,12 +24,12 @@ import (
 var (
 	taskHello = NewTask("hello", func(ctx context.Context, param Parameter) (Parameter, error) {
 		param.Set("message", "hello run")
-		return param.Clone(), nil
+		return param, nil
 	}, SetPostStart(func(ctx context.Context, param Parameter) (Parameter, error) {
-		fmt.Println("this is task post start")
+		Info()("this is task post start")
 		return param, nil
 	}), SetPreStop(func(ctx context.Context, param Parameter) (Parameter, error) {
-		fmt.Println("this is task pre stop")
+		Info()("this is task pre stop")
 		return param, nil
 	}))
 	taskError = NewTask("error", func(ctx context.Context, param Parameter) (Parameter, error) {
@@ -48,9 +47,9 @@ func TestNewTask(t *testing.T) {
 
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
-		assert.Equal(t, ContextCanceled, taskError.Run(ctx, NewParameter()).(Error).Code())
+		assert.Equal(t, ContextCanceled, taskError.Run(ctx, NewParameter()).(ErrorTao).Code())
 
-		assert.Equal(t, "I", taskError.Run(context.Background(), NewParameter()).(Error).Code())
+		assert.Equal(t, "I", taskError.Run(context.Background(), NewParameter()).(ErrorTao).Code())
 	})
 
 	t.Run("TestTaskRun_GetName", func(t *testing.T) {
@@ -70,7 +69,7 @@ func TestNewTask(t *testing.T) {
 
 	t.Run("TestTaskRun_Close", func(t *testing.T) {
 		assert.Equal(t, nil, taskHello.Close())
-		assert.Equal(t, "II", taskError.Close().(Error).Code())
-		assert.Equal(t, TaskCloseTwice, taskError.Close().(Error).Code())
+		assert.Equal(t, "II", taskError.Close().(ErrorTao).Code())
+		assert.Equal(t, TaskCloseTwice, taskError.Close().(ErrorTao).Code())
 	})
 }

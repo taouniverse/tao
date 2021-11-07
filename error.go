@@ -54,15 +54,15 @@ func (e *errorUnWrap) Unwrap() error {
 	return e.err
 }
 
-// Error extension of error, wrap of error
-type Error interface {
+// ErrorTao extension of error, wrap of error
+type ErrorTao interface {
 	error
 	Code() string
 	Wrap(err error)
 	Cause() error
 }
 
-var _ Error = (*errorTao)(nil)
+var _ ErrorTao = (*errorTao)(nil)
 
 // errorTao with code & message
 // code for computer
@@ -78,7 +78,7 @@ type errorTao struct {
 }
 
 // NewError constructor of Error
-func NewError(code, message string) Error {
+func NewError(code, message string) ErrorTao {
 	return &errorTao{
 		code:    code,
 		message: message,
