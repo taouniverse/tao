@@ -142,14 +142,8 @@ func (l *logger) Fatalf(format string, v ...interface{}) {
 // default to provide based log print
 var TaoLogger Logger
 
-// Writer for TaoLogger
-var Writer io.Writer
-
-// init default logger & writer
-func init() {
-	Writer = os.Stdout
-	TaoLogger = &logger{log.New(Writer, " ", log.LstdFlags|log.Lshortfile)}
-}
+// TaoWriter for TaoLogger
+var TaoWriter io.Writer
 
 /**
 SPECIAL:

@@ -15,6 +15,7 @@
 package tao
 
 import (
+	"fmt"
 	"sync"
 )
 
@@ -78,10 +79,10 @@ type errorTao struct {
 }
 
 // NewError constructor of Error
-func NewError(code, message string) ErrorTao {
+func NewError(code, message string, a ...interface{}) ErrorTao {
 	return &errorTao{
 		code:    code,
-		message: message,
+		message: fmt.Sprintf(message, a...),
 	}
 }
 
@@ -126,8 +127,10 @@ const (
 	Unknown         = "Unknown"
 	ParamInvalid    = "ParamInvalid"
 	ContextCanceled = "ContextCanceled"
+	DuplicateCall   = "DuplicateCall"
 	TaskRunTwice    = "TaskRunTwice"
 	TaskCloseTwice  = "TaskCloseTwice"
 	TaskClosed      = "TaskClosed"
 	TaskRunning     = "TaskRunning"
+	ConfigNotFound  = "ConfigNotFound"
 )
