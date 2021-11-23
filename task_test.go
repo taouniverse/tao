@@ -26,10 +26,10 @@ var (
 		param.Set("message", "hello run")
 		return param, nil
 	}, SetPostStart(func(ctx context.Context, param Parameter) (Parameter, error) {
-		Info()("this is task post start")
+		Info("this is task post start")
 		return param, nil
 	}), SetPreStop(func(ctx context.Context, param Parameter) (Parameter, error) {
-		Info()("this is task pre stop")
+		Info("this is task pre stop")
 		return param, nil
 	}))
 	taskError = NewTask("error", func(ctx context.Context, param Parameter) (Parameter, error) {

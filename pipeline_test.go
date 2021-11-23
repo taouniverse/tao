@@ -52,11 +52,11 @@ var (
 			NewPipeTask(
 				NewTask("pA.PostStart",
 					func(ctx context.Context, param Parameter) (Parameter, error) {
-						Info()("this is pipeA post start")
+						Info("this is pipeA post start")
 						return param, nil
 					}, SetClose(
 						func() error {
-							Info()("this is pipeA post start close")
+							Info("this is pipeA post start close")
 							return nil
 						},
 					)))),
@@ -64,11 +64,11 @@ var (
 			NewPipeTask(
 				NewTask("pA.PreStop",
 					func(ctx context.Context, param Parameter) (Parameter, error) {
-						Info()("this is pipeA pre stop")
+						Info("this is pipeA pre stop")
 						return param, nil
 					}, SetClose(
 						func() error {
-							Info()("this is pipeA pre stop close")
+							Info("this is pipeA pre stop close")
 							return nil
 						},
 					)))),
@@ -79,14 +79,14 @@ var (
 			NewPipeTask(
 				NewTask("pipe.PostStart",
 					func(ctx context.Context, param Parameter) (Parameter, error) {
-						Info()("this is pipe post start")
+						Info("this is pipe post start")
 						return param, nil
 					}))),
 		SetPreStopTask(
 			NewPipeTask(
 				NewTask("pipe.PreStop",
 					func(ctx context.Context, param Parameter) (Parameter, error) {
-						Info()("this is pipe pre stop")
+						Info("this is pipe pre stop")
 						return param, nil
 					}))),
 	)

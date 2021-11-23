@@ -14,4 +14,16 @@
 
 package tao
 
-// TODO testMain
+import (
+	"context"
+	"testing"
+)
+
+func TestMain(m *testing.M) {
+	m.Run()
+
+	err := Run(context.Background(), nil)
+	if err != nil {
+		Panic(err)
+	}
+}

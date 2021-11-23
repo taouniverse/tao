@@ -112,7 +112,7 @@ func (p *pipeline) Run(ctx context.Context, param Parameter) error {
 	}
 
 	if p.state != Runnable {
-		return NewError(TaskRunTwice, "pipeline: Run called twice for task "+p.name)
+		return NewError(TaskRunTwice, "pipeline: Run called twice for pipeline "+p.name)
 	}
 
 	select {

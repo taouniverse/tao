@@ -15,48 +15,60 @@
 package tao
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-type logConfig struct {
-	Type      string   `json:"type"`
-	Level     string   `json:"level"`
-	Path      string   `json:"path"`
+// printConfig implements Config
+type printConfig struct {
+	Print     string   `json:"print"`
 	RunAfter_ []string `json:"run_after"`
 }
 
-func (l *logConfig) ToTask() Task {
-	return nil
+func (l *printConfig) ToTask() Task {
+	return NewTask("print", func(ctx context.Context, param Parameter) (Parameter, error) {
+		select {
+		case <-ctx.Done():
+			return param, NewError(ContextCanceled, "test: ctx already Done")
+		default:
+			fmt.Println(l.Print)
+			return param, nil
+		}
+	})
 }
 
-func (l *logConfig) ValidSelf() {
+func (l *printConfig) ValidSelf() {
 }
 
-func (l *logConfig) RunAfter() []string {
+func (l *printConfig) RunAfter() []string {
 	return l.RunAfter_
 }
 
 func TestJsonConfig(t *testing.T) {
 	file := `
 {
-    "log": {
-        "type": "file",
-        "level": "debug",
-        "path": "./test.log",
+    "print": {
+        "print": "==============  hello,tao!  ==============",
         "run_after": []
     }
 }`
 	err := json.Unmarshal([]byte(file), &configInterfaceMap)
 	assert.Nil(t, err)
-	bytes, err := GetConfigBytes("log")
+	bytes, err := GetConfigBytes("print")
 	assert.Nil(t, err)
-	c := new(logConfig)
+	c := new(printConfig)
 	err = json.Unmarshal(bytes, &c)
 	assert.Nil(t, err)
-	err = SetConfig("log", c)
+	err = SetConfig("print", c)
 	assert.Nil(t, err)
-	t.Log(configMap["log"])
+	err = SetConfig("print", c)
+	assert.NotNil(t, err)
+	t.Log(configMap["print"])
+
+	_, err = GetConfigBytes("Unknown")
+	assert.NotNil(t, err)
 }
