@@ -23,10 +23,15 @@ import (
 // The Tao produced One; One produced Two; Two produced Three; Three produced All things.
 var tao Pipeline
 
-// init default logger & writer
+// init tao
 func init() {
+	// default logger & writer
 	TaoWriter = os.Stdout
-	TaoLogger = &logger{log.New(TaoWriter, " ", log.LstdFlags|log.Lshortfile)}
+	TaoLogger = &logger{log.New(TaoWriter, "", log.LstdFlags|log.Lshortfile)}
+
+	loadConfig()
+
+	taoLogger()
 
 	tao = NewPipeline("tao")
 }

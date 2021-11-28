@@ -14,7 +14,12 @@
 
 package tao
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"flag"
+	"gopkg.in/yaml.v3"
+	"io/ioutil"
+)
 
 // Config interface
 type Config interface {
@@ -53,4 +58,32 @@ func SetConfig(key string, c Config) error {
 	}
 	configMap[key] = c
 	return nil
+}
+
+/**
+TODO support json,yaml...etc
+*/
+
+// default yaml config
+const defaultYamlConfig = "./conf/config.yaml"
+
+// load config file
+func loadConfig() {
+	confPath := flag.String("f", "", "config file path")
+
+	if *confPath == "" {
+		*confPath = defaultYamlConfig
+	}
+
+	data, err := ioutil.ReadFile(*confPath)
+	if err != nil {
+		panic(err)
+	}
+
+	err = yaml.Unmarshal(data, &configInterfaceMap)
+	if err != nil {
+		panic(err)
+	}
+
+	Debugf("config data: \n%s", string(data))
 }

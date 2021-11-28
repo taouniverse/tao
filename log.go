@@ -204,3 +204,11 @@ func Fatal(v ...interface{}) {
 func Fatalf(format string, v ...interface{}) {
 	TaoLogger.Fatalf(3, format, v...)
 }
+
+/**
+TODO implements Config interface
+*/
+func taoLogger() {
+	TaoWriter = os.Stdout
+	TaoLogger = &logger{log.New(TaoWriter, "", log.LstdFlags|log.Lshortfile)}
+}
