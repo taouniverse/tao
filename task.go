@@ -90,6 +90,14 @@ func (t *task) Run(ctx context.Context, param Parameter) (err error) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	if param == nil {
+		param = NewParameter()
+	}
+
 	if t.state == Close {
 		return NewError(TaskClosed, "task: task has been closed")
 	}

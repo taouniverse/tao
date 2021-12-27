@@ -23,6 +23,8 @@ import (
 
 // Config interface
 type Config interface {
+	// Default config
+	Default() Config
 	// ValidSelf with some default values
 	ValidSelf()
 	// ToTask transform itself to Task
@@ -67,8 +69,9 @@ TODO support json,yaml...etc
 // default yaml config
 const defaultYamlConfig = "./conf/config.yaml"
 
-// load config file
+// loadConfig file
 func loadConfig() {
+	// xxx -f conf/config.yaml
 	confPath := flag.String("f", "", "config file path")
 
 	if *confPath == "" {
@@ -77,13 +80,12 @@ func loadConfig() {
 
 	data, err := ioutil.ReadFile(*confPath)
 	if err != nil {
-		panic(err)
+		Warnf("%s not existed\n", *confPath)
+		configInterfaceMap = make(map[string]interface{})
+	} else {
+		err = yaml.Unmarshal(data, &configInterfaceMap)
+		if err != nil {
+			panic(err)
+		}
 	}
-
-	err = yaml.Unmarshal(data, &configInterfaceMap)
-	if err != nil {
-		panic(err)
-	}
-
-	Debugf("config data: \n%s", string(data))
 }

@@ -16,6 +16,8 @@ package tao
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"log"
 	"os"
 )
@@ -31,9 +33,7 @@ func init() {
 
 	loadConfig()
 
-	taoLogger()
-
-	tao = NewPipeline("tao")
+	taoConfig()
 }
 
 // Run tao
@@ -46,6 +46,12 @@ func Run(ctx context.Context, param Parameter) (err error) {
 		param = NewParameter()
 	}
 
+	cm, err := json.MarshalIndent(configMap, "", "  ")
+	if err != nil {
+		return err
+	}
+	Debugf("config data: \n%s", string(cm))
+
 	for _, c := range configMap {
 		c.ValidSelf()
 		err = tao.Register(NewPipeTask(c.ToTask(), c.RunAfter()...))
@@ -55,4 +61,72 @@ func Run(ctx context.Context, param Parameter) (err error) {
 	}
 
 	return tao.Run(ctx, param)
+}
+
+// TaoConfig implements Config
+type TaoConfig struct {
+	LogLevel `json:"log_level"`
+}
+
+var defaultTao = &TaoConfig{
+	DEBUG,
+}
+
+// Default config
+func (t *TaoConfig) Default() Config {
+	return defaultTao
+}
+
+// ValidSelf with some default values
+func (t *TaoConfig) ValidSelf() {
+	if t.LogLevel < DEBUG || t.LogLevel > FATAL {
+		t.LogLevel = defaultTao.LogLevel
+	}
+}
+
+// ToTask transform itself to Task
+func (t *TaoConfig) ToTask() Task {
+	return nil
+}
+
+// RunAfter defines pre task names
+func (t *TaoConfig) RunAfter() []string {
+	return nil
+}
+
+// ConfigKey for this repo
+const ConfigKey = "tao"
+
+func taoConfig() {
+	// transfer config bytes to object
+	t := new(TaoConfig)
+	bytes, err := GetConfigBytes(ConfigKey)
+	if err != nil {
+		t = t.Default().(*TaoConfig)
+	} else {
+		err = json.Unmarshal(bytes, &t)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	// tao config
+	t.ValidSelf()
+
+	TaoLevel = t.LogLevel
+	TaoWriter = os.Stdout
+	TaoLogger = &logger{log.New(TaoWriter, "", log.LstdFlags|log.Lshortfile)}
+
+	tao = NewPipeline("tao")
+
+	// print banner
+	banner := `
+___________              
+\__    ___/____    ____  
+  |    |  \__  \  /  _ \ 
+  |    |   / __ \(  <_> )
+  |____|  (____  /\____/ 
+               \/
+`
+	fmt.Print(banner)
 }

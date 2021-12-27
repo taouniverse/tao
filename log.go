@@ -24,6 +24,9 @@ import (
 // LogLevel log's level
 type LogLevel uint8
 
+// TaoLevel to define the log level of tao
+var TaoLevel = DEBUG
+
 const (
 	// DEBUG (usually) is used in development env to print track info but disabled in production env to avoid overweight logs
 	DEBUG LogLevel = iota
@@ -74,46 +77,73 @@ type logger struct {
 
 // DEBUG logs info in debug level
 func (l *logger) Debug(calldepth int, v ...interface{}) {
+	if TaoLevel > DEBUG {
+		return
+	}
 	l.Output(calldepth, LevelPrefix[DEBUG]+fmt.Sprintln(v...))
 }
 
 // Debugf logs info in debug level
 func (l *logger) Debugf(calldepth int, format string, v ...interface{}) {
+	if TaoLevel > DEBUG {
+		return
+	}
 	l.Output(calldepth, LevelPrefix[DEBUG]+fmt.Sprintf(format, v...))
 }
 
 // Info logs info in info level
 func (l *logger) Info(calldepth int, v ...interface{}) {
+	if TaoLevel > INFO {
+		return
+	}
 	l.Output(calldepth, LevelPrefix[INFO]+fmt.Sprintln(v...))
 }
 
 // Infof logs info in info level
 func (l *logger) Infof(calldepth int, format string, v ...interface{}) {
+	if TaoLevel > INFO {
+		return
+	}
 	l.Output(calldepth, LevelPrefix[INFO]+fmt.Sprintf(format, v...))
 }
 
 // Warn logs info in warn level
 func (l *logger) Warn(calldepth int, v ...interface{}) {
+	if TaoLevel > WARNING {
+		return
+	}
 	l.Output(calldepth, LevelPrefix[WARNING]+fmt.Sprintln(v...))
 }
 
 // Warnf logs info in warn level
 func (l *logger) Warnf(calldepth int, format string, v ...interface{}) {
+	if TaoLevel > WARNING {
+		return
+	}
 	l.Output(calldepth, LevelPrefix[WARNING]+fmt.Sprintf(format, v...))
 }
 
 // Error logs info in error level
 func (l *logger) Error(calldepth int, v ...interface{}) {
+	if TaoLevel > ERROR {
+		return
+	}
 	l.Output(calldepth, LevelPrefix[ERROR]+fmt.Sprintln(v...))
 }
 
 // Errorf logs info in error level
 func (l *logger) Errorf(calldepth int, format string, v ...interface{}) {
+	if TaoLevel > ERROR {
+		return
+	}
 	l.Output(calldepth, LevelPrefix[ERROR]+fmt.Sprintf(format, v...))
 }
 
 // Panic logs info in panic level
 func (l *logger) Panic(calldepth int, v ...interface{}) {
+	if TaoLevel > PANIC {
+		return
+	}
 	s := LevelPrefix[PANIC] + fmt.Sprintln(v...)
 	l.Output(calldepth, s)
 	panic(s)
@@ -121,6 +151,9 @@ func (l *logger) Panic(calldepth int, v ...interface{}) {
 
 // Panicf logs info in panic level
 func (l *logger) Panicf(calldepth int, format string, v ...interface{}) {
+	if TaoLevel > PANIC {
+		return
+	}
 	s := LevelPrefix[PANIC] + fmt.Sprintf(format, v...)
 	l.Output(calldepth, s)
 	panic(s)
@@ -128,12 +161,18 @@ func (l *logger) Panicf(calldepth int, format string, v ...interface{}) {
 
 // Fatal logs info in fatal level
 func (l *logger) Fatal(calldepth int, v ...interface{}) {
+	if TaoLevel > FATAL {
+		return
+	}
 	l.Output(calldepth, LevelPrefix[FATAL]+fmt.Sprintln(v...))
 	os.Exit(1)
 }
 
 // Fatalf logs info in fatal level
 func (l *logger) Fatalf(calldepth int, format string, v ...interface{}) {
+	if TaoLevel > FATAL {
+		return
+	}
 	l.Output(calldepth, LevelPrefix[FATAL]+fmt.Sprintf(format, v...))
 	os.Exit(1)
 }
@@ -203,12 +242,4 @@ func Fatal(v ...interface{}) {
 // Fatalf function wrap of TaoLogger
 func Fatalf(format string, v ...interface{}) {
 	TaoLogger.Fatalf(3, format, v...)
-}
-
-/**
-TODO implements Config interface
-*/
-func taoLogger() {
-	TaoWriter = os.Stdout
-	TaoLogger = &logger{log.New(TaoWriter, "", log.LstdFlags|log.Lshortfile)}
 }

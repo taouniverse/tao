@@ -1,3 +1,0 @@
-log:
-  file: ./test.log
-  level: debug

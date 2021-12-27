@@ -29,6 +29,26 @@ type printConfig struct {
 	RunAfter_ []string `json:"run_after"`
 }
 
+var defaultPrint = &printConfig{
+	Print: "==============  hello,tao!  ==============",
+}
+
+// Default config
+func (l *printConfig) Default() Config {
+	return defaultPrint
+}
+
+// ValidSelf with some default values
+func (l *printConfig) ValidSelf() {
+	if l.Print == "" {
+		l.Print = defaultPrint.Print
+	}
+	if l.RunAfter_ == nil {
+		l.RunAfter_ = defaultPrint.RunAfter_
+	}
+}
+
+// ToTask transform itself to Task
 func (l *printConfig) ToTask() Task {
 	return NewTask("print", func(ctx context.Context, param Parameter) (Parameter, error) {
 		select {
@@ -41,9 +61,7 @@ func (l *printConfig) ToTask() Task {
 	})
 }
 
-func (l *printConfig) ValidSelf() {
-}
-
+// RunAfter defines pre task names
 func (l *printConfig) RunAfter() []string {
 	return l.RunAfter_
 }

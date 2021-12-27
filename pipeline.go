@@ -89,6 +89,10 @@ func (p *pipeline) Register(task *pipeTask) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
+	if task == nil {
+		return NewError(ParamInvalid, "pipeline: Register task is null")
+	}
+
 	tName := task.Name()
 	if tName == "" {
 		return NewError(ParamInvalid, "pipeline: Register task name is empty")
@@ -106,6 +110,14 @@ func (p *pipeline) Register(task *pipeTask) error {
 func (p *pipeline) Run(ctx context.Context, param Parameter) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
+
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	if param == nil {
+		param = NewParameter()
+	}
 
 	if p.state == Close {
 		return NewError(TaskClosed, "pipeline: pipeline has been closed")
