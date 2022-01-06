@@ -19,6 +19,7 @@ import (
 	"flag"
 	"gopkg.in/yaml.v3"
 	"io/ioutil"
+	"path"
 )
 
 // Config interface
@@ -38,6 +39,69 @@ var configInterfaceMap = make(map[string]interface{})
 
 // transform interface to concrete Config type
 var configMap = make(map[string]Config)
+
+// Config Type
+type ConfigType uint8
+
+const (
+	Yaml ConfigType = iota
+	Json
+)
+
+// default yaml config
+const defaultYamlConfig = "./conf/config.yaml"
+
+func init() {
+	// xxx -f conf/config.yaml
+	confPath := flag.String("f", defaultYamlConfig, "config file path")
+
+	flag.Parse()
+
+	data, err := ioutil.ReadFile(*confPath)
+	if err != nil {
+		// 1. config in code
+		// 2. use default config(default yaml not existed)
+		return
+	}
+
+	// 1. config in file
+	// 2. use default config(default yaml is existed but empty)
+	switch t := path.Ext(*confPath); t {
+	case ".yaml", ".yml":
+		err = SetConfigBytesAll(data, Yaml)
+	case ".json":
+		err = SetConfigBytesAll(data, Json)
+	default:
+		panic(NewError(ParamInvalid, "%s file not supported", t))
+	}
+	if err != nil {
+		panic(err)
+	}
+}
+
+// SetConfigBytesAll & taoInit can only be called once
+var once = make(chan struct{}, 1)
+
+// SetConfigBytesAll from config file
+func SetConfigBytesAll(data []byte, configType ConfigType) (err error) {
+	select {
+	case once <- struct{}{}:
+		switch configType {
+		case Yaml:
+			err = yaml.Unmarshal(data, &configInterfaceMap)
+		case Json:
+			err = json.Unmarshal(data, &configInterfaceMap)
+		default:
+		}
+		if err == nil {
+			// init tao with config
+			taoInit()
+		}
+	default:
+		err = NewError(DuplicateCall, "config: SetConfigBytes has been called before")
+	}
+	return
+}
 
 // GetConfigBytes by key of config
 func GetConfigBytes(key string) ([]byte, error) {
@@ -60,32 +124,4 @@ func SetConfig(key string, c Config) error {
 	}
 	configMap[key] = c
 	return nil
-}
-
-/**
-TODO support json,yaml...etc
-*/
-
-// default yaml config
-const defaultYamlConfig = "./conf/config.yaml"
-
-// loadConfig file
-func loadConfig() {
-	// xxx -f conf/config.yaml
-	confPath := flag.String("f", "", "config file path")
-
-	if *confPath == "" {
-		*confPath = defaultYamlConfig
-	}
-
-	data, err := ioutil.ReadFile(*confPath)
-	if err != nil {
-		Warnf("%s not existed\n", *confPath)
-		configInterfaceMap = make(map[string]interface{})
-	} else {
-		err = yaml.Unmarshal(data, &configInterfaceMap)
-		if err != nil {
-			panic(err)
-		}
-	}
 }

@@ -25,17 +25,6 @@ import (
 // The Tao produced One; One produced Two; Two produced Three; Three produced All things.
 var tao Pipeline
 
-// init tao
-func init() {
-	// default logger & writer
-	TaoWriter = os.Stdout
-	TaoLogger = &logger{log.New(TaoWriter, "", log.LstdFlags|log.Lshortfile)}
-
-	loadConfig()
-
-	taoConfig()
-}
-
 // Run tao
 func Run(ctx context.Context, param Parameter) (err error) {
 	if ctx == nil {
@@ -46,12 +35,22 @@ func Run(ctx context.Context, param Parameter) (err error) {
 		param = NewParameter()
 	}
 
-	cm, err := json.MarshalIndent(configMap, "", "  ")
-	if err != nil {
-		return err
+	// fallback
+	if tao == nil {
+		// init default tao
+		taoInit()
+		// warning print
+		Warnf("%s not existed\n", defaultYamlConfig)
 	}
-	Debugf("config data: \n%s", string(cm))
 
+	// non-block check
+	select {
+	case <-ctx.Done():
+		return NewError(ContextCanceled, "tao: context has been canceled")
+	default:
+	}
+
+	// tasks run
 	for _, c := range configMap {
 		c.ValidSelf()
 		err = tao.Register(NewPipeTask(c.ToTask(), c.RunAfter()...))
@@ -60,16 +59,25 @@ func Run(ctx context.Context, param Parameter) (err error) {
 		}
 	}
 
+	// debug print
+	cm, err := json.MarshalIndent(configMap, "", "  ")
+	if err != nil {
+		return err
+	}
+	Debugf("config data: \n%s", string(cm))
+
 	return tao.Run(ctx, param)
 }
 
 // TaoConfig implements Config
 type TaoConfig struct {
-	LogLevel `json:"log_level"`
+	LogLevel   `json:"log_level"`
+	HideBanner bool `json:"hide_banner"`
 }
 
 var defaultTao = &TaoConfig{
 	DEBUG,
+	false,
 }
 
 // Default config
@@ -97,7 +105,7 @@ func (t *TaoConfig) RunAfter() []string {
 // ConfigKey for this repo
 const ConfigKey = "tao"
 
-func taoConfig() {
+func taoInit() {
 	// transfer config bytes to object
 	t := new(TaoConfig)
 	bytes, err := GetConfigBytes(ConfigKey)
@@ -117,7 +125,7 @@ func taoConfig() {
 	TaoWriter = os.Stdout
 	TaoLogger = &logger{log.New(TaoWriter, "", log.LstdFlags|log.Lshortfile)}
 
-	tao = NewPipeline("tao")
+	tao = NewPipeline(ConfigKey)
 
 	// print banner
 	banner := `
@@ -128,5 +136,7 @@ ___________
   |____|  (____  /\____/ 
                \/
 `
-	fmt.Print(banner)
+	if !t.HideBanner {
+		fmt.Print(banner)
+	}
 }
