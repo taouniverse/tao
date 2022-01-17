@@ -25,6 +25,9 @@ import (
 // The Tao produced One; One produced Two; Two produced Three; Three produced All things.
 var tao Pipeline
 
+// T global config of tao
+var T *TaoConfig
+
 // Run tao
 func Run(ctx context.Context, param Parameter) (err error) {
 	if ctx == nil {
@@ -71,13 +74,16 @@ func Run(ctx context.Context, param Parameter) (err error) {
 
 // TaoConfig implements Config
 type TaoConfig struct {
-	LogLevel   `json:"log_level"`
+	*Log       `json:"log"`
 	HideBanner bool `json:"hide_banner"`
 }
 
 var defaultTao = &TaoConfig{
-	DEBUG,
-	false,
+	Log: &Log{
+		Level: DEBUG,
+		Type:  COMMAND,
+		Path:  "./test.log",
+	},
 }
 
 // Default config
@@ -87,8 +93,16 @@ func (t *TaoConfig) Default() Config {
 
 // ValidSelf with some default values
 func (t *TaoConfig) ValidSelf() {
-	if t.LogLevel < DEBUG || t.LogLevel > FATAL {
-		t.LogLevel = defaultTao.LogLevel
+	if t.Level < DEBUG || t.Level > FATAL {
+		t.Level = defaultTao.Level
+	}
+	if t.Type == "" {
+		t.Type = defaultTao.Type
+	}
+	if t.Type == File {
+		if t.Path == "" {
+			t.Path = defaultTao.Path
+		}
 	}
 }
 
@@ -107,22 +121,29 @@ const ConfigKey = "tao"
 
 func taoInit() {
 	// transfer config bytes to object
-	t := new(TaoConfig)
+	T = new(TaoConfig)
 	bytes, err := GetConfigBytes(ConfigKey)
 	if err != nil {
-		t = t.Default().(*TaoConfig)
+		T = T.Default().(*TaoConfig)
 	} else {
-		err = json.Unmarshal(bytes, &t)
+		err = json.Unmarshal(bytes, &T)
 		if err != nil {
 			panic(err)
 		}
 	}
 
 	// tao config
-	t.ValidSelf()
+	T.ValidSelf()
 
-	TaoLevel = t.LogLevel
-	TaoWriter = os.Stdout
+	switch T.Type {
+	case File:
+		TaoWriter, err = os.OpenFile(T.Path, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+		if err != nil {
+			panic(err)
+		}
+	default:
+		TaoWriter = os.Stdout
+	}
 	TaoLogger = &logger{log.New(TaoWriter, "", log.LstdFlags|log.Lshortfile)}
 
 	tao = NewPipeline(ConfigKey)
@@ -136,7 +157,7 @@ ___________
   |____|  (____  /\____/ 
                \/
 `
-	if !t.HideBanner {
+	if !T.HideBanner {
 		fmt.Print(banner)
 	}
 }

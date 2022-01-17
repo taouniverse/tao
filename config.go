@@ -17,9 +17,10 @@ package tao
 import (
 	"encoding/json"
 	"flag"
-	"gopkg.in/yaml.v3"
 	"io/ioutil"
 	"path"
+
+	"gopkg.in/yaml.v3"
 )
 
 // Config interface
