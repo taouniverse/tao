@@ -93,15 +93,19 @@ func (t *TaoConfig) Default() Config {
 
 // ValidSelf with some default values
 func (t *TaoConfig) ValidSelf() {
-	if t.Level < DEBUG || t.Level > FATAL {
-		t.Level = defaultTao.Level
-	}
-	if t.Type == "" {
-		t.Type = defaultTao.Type
-	}
-	if t.Type == File {
-		if t.Path == "" {
-			t.Path = defaultTao.Path
+	if t.Log == nil {
+		t.Log = defaultTao.Log
+	} else {
+		if t.Level < DEBUG || t.Level > FATAL {
+			t.Level = defaultTao.Level
+		}
+		if t.Type == "" {
+			t.Type = defaultTao.Type
+		}
+		if t.Type == File {
+			if t.Path == "" {
+				t.Path = defaultTao.Path
+			}
 		}
 	}
 }
