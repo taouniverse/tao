@@ -87,7 +87,7 @@ type logger struct {
 	*log.Logger
 }
 
-// DEBUG logs info in debug level
+// Debug logs info in debug level
 func (l *logger) Debug(calldepth int, v ...interface{}) {
 	if T.Level > DEBUG {
 		return

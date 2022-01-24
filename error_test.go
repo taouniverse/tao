@@ -15,33 +15,45 @@
 package tao
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 var (
-	err1 = NewErrorUnWrapper("err1", nil)
-	err2 = NewErrorUnWrapper("err2", err1)
-	err3 = NewErrorUnWrapper("err3", err2)
+	err1 = NewErrorWrapped("err1", nil)
+	err2 = NewErrorWrapped("err2", err1)
+	err3 = NewErrorWrapped("err3", err2)
 
-	err4 = NewErrorUnWrapper("err4", nil)
-	err5 = NewErrorUnWrapper("err5", nil)
+	err4 = NewErrorWrapped("err4", nil)
+	err5 = NewErrorWrapped("err5", nil)
 
 	err = NewError("I", "Error I")
 )
 
-func TestNewErrorUnWrapper(t *testing.T) {
-	t.Run("TestErrorUnWrap_Error", func(t *testing.T) {
+func TestNewErrorWrapped(t *testing.T) {
+	t.Run("TestErrorWrapped_Error", func(t *testing.T) {
 		assert.Equal(t, "err1", err1.Error())
 		assert.Equal(t, "err2"+errSplit+err1.Error(), err2.Error())
 		assert.Equal(t, "err3"+errSplit+err2.Error(), err3.Error())
 	})
 
-	t.Run("TestErrorUnWrap_UnWrap", func(t *testing.T) {
+	t.Run("TestErrorWrapped_UnWrap", func(t *testing.T) {
 		assert.Equal(t, nil, err1.Unwrap())
 		assert.Equal(t, err1, err2.Unwrap())
 		assert.Equal(t, err2, err3.Unwrap())
+	})
+
+	t.Run("TestErrorWrapped_Is", func(t *testing.T) {
+		assert.Equal(t, true, errors.Is(err2, err1))
+		assert.Equal(t, true, errors.Is(err3, err2))
+	})
+
+	t.Run("TestErrorWrapped_As", func(t *testing.T) {
+		var wrapped = new(errorWrapped)
+		assert.Equal(t, true, errors.As(err3, &wrapped))
+		assert.Equal(t, err3, wrapped)
 	})
 }
 
@@ -62,6 +74,17 @@ func TestNewError(t *testing.T) {
 	})
 
 	t.Run("TestError_Cause", func(t *testing.T) {
-		assert.Equal(t, NewErrorUnWrapper(err5.Error(), err4), err.Cause())
+		assert.Equal(t, NewErrorWrapped(err5.Error(), err4), err.Cause())
+	})
+
+	t.Run("TestError_Is", func(t *testing.T) {
+		assert.Equal(t, true, errors.Is(err, err4))
+		assert.Equal(t, true, errors.Is(err, NewErrorWrapped(err5.Error(), err4)))
+	})
+
+	t.Run("TestError_As", func(t *testing.T) {
+		var wrapped = new(errorWrapped)
+		assert.Equal(t, true, errors.As(err, &wrapped))
+		assert.Equal(t, NewErrorWrapped(err5.Error(), err4), wrapped)
 	})
 }

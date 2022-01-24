@@ -23,37 +23,36 @@ const (
 	errSplit = "\n==> "
 )
 
-// ErrorUnWrapper extension of error
+// ErrorUnWrapper extension of error which can be unwrapped
 type ErrorUnWrapper interface {
 	error
 	Unwrap() error
 }
 
-var _ ErrorUnWrapper = (*errorUnWrap)(nil)
+var _ ErrorUnWrapper = (*errorWrapped)(nil)
 
-// errorUnWrap implements ErrorUnWrapper
-type errorUnWrap struct {
-	s   string
+// errorWrapped implements ErrorUnWrapper
+type errorWrapped struct {
+	msg string
 	err error
 }
 
-// NewErrorUnWrapper constructor of errorUnWrap
-func NewErrorUnWrapper(format string, e error) ErrorUnWrapper {
+// NewErrorWrapped constructor of errorWrapped
+func NewErrorWrapped(format string, e error) ErrorUnWrapper {
 	if e != nil {
-		return &errorUnWrap{format + errSplit + e.Error(), e}
+		return &errorWrapped{format + errSplit + e.Error(), e}
 	}
-	return &errorUnWrap{format, nil}
+	return &errorWrapped{format, nil}
 }
 
 // Error string
-func (e *errorUnWrap) Error() string {
-	return e.s
-}
+func (e *errorWrapped) Error() string { return e.msg }
 
 // Unwrap e self
-func (e *errorUnWrap) Unwrap() error {
-	return e.err
-}
+func (e *errorWrapped) Unwrap() error { return e.err }
+
+// Is a same error
+func (e *errorWrapped) Is(err error) bool { return e.Error() == err.Error() }
 
 // ErrorTao extension of error, wrap of error
 type ErrorTao interface {
@@ -64,11 +63,12 @@ type ErrorTao interface {
 }
 
 var _ ErrorTao = (*errorTao)(nil)
+var _ ErrorUnWrapper = (*errorTao)(nil)
 
 // errorTao with code & message
 // code for computer
 // message for user
-// implements Error
+// implements ErrorTao & ErrorUnWrapper
 type errorTao struct {
 	mutex sync.RWMutex
 
@@ -110,11 +110,28 @@ func (e *errorTao) Wrap(err error) {
 	if err == nil {
 		return
 	}
-	e.cause = NewErrorUnWrapper(err.Error(), e.cause)
+	// wrap cause & err
+	if e.cause != nil {
+		e.cause = NewErrorWrapped(err.Error(), e.cause)
+		return
+	}
+	// init cause
+	if cause, ok := err.(ErrorUnWrapper); ok {
+		e.cause = cause
+	} else {
+		e.cause = NewErrorWrapped(err.Error(), nil)
+	}
 }
 
 // Cause of error
 func (e *errorTao) Cause() error {
+	e.mutex.RLock()
+	defer e.mutex.RUnlock()
+	return e.cause
+}
+
+// Unwrap e self
+func (e *errorTao) Unwrap() error {
 	e.mutex.RLock()
 	defer e.mutex.RUnlock()
 	return e.cause

@@ -245,7 +245,7 @@ func (p *pipeline) Close() error {
 
 	for i := len(closeSlice) - 1; i >= 0; i-- {
 		if e := closeSlice[i](); e != nil {
-			err = NewErrorUnWrapper(e.Error(), err)
+			err = NewErrorWrapped(e.Error(), err)
 		}
 	}
 

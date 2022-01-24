@@ -41,7 +41,7 @@ var configInterfaceMap = make(map[string]interface{})
 // transform interface to concrete Config type
 var configMap = make(map[string]Config)
 
-// Config Type
+// ConfigType of config file
 type ConfigType uint8
 
 const (
@@ -99,6 +99,7 @@ func SetConfigBytesAll(data []byte, configType ConfigType) (err error) {
 			taoInit()
 		}
 	default:
+		// caused by duplicate config(file & code)
 		err = NewError(DuplicateCall, "config: SetConfigBytes has been called before")
 	}
 	return
@@ -112,7 +113,7 @@ func GetConfigBytes(key string) ([]byte, error) {
 	}
 	bytes, err := json.Marshal(c)
 	if err != nil {
-		return nil, NewErrorUnWrapper("config: marshal failed", err)
+		return nil, NewErrorWrapped("config: marshal failed", err)
 	}
 	return bytes, nil
 }
