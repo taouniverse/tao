@@ -93,6 +93,11 @@ func (p *pipeline) Register(task *pipeTask) error {
 		return NewError(ParamInvalid, "pipeline: Register task is null")
 	}
 
+	// nothing to do
+	if task.Task == nil {
+		return nil
+	}
+
 	tName := task.Name()
 	if tName == "" {
 		return NewError(ParamInvalid, "pipeline: Register task name is empty")

@@ -20,18 +20,18 @@ import (
 
 func TestLogger(t *testing.T) {
 	t.Run("ObjectFunction", func(t *testing.T) {
-		TaoLogger.Debug(2, "debug")
-		TaoLogger.Debugf(2, "%s", "debug")
-		TaoLogger.Info(2, "info")
-		TaoLogger.Infof(2, "%s", "info")
-		TaoLogger.Warn(2, "warn")
-		TaoLogger.Warnf(2, "%s", "warn")
-		TaoLogger.Error(2, "error")
-		TaoLogger.Errorf(2, "%s", "error")
-		// TaoLogger.Panic(2, "panic")
-		// TaoLogger.Panicf(2, "%s", "panic")
-		// TaoLogger.Fatal(2, "fatal")
-		// TaoLogger.Fatalf(2, "%s", "fatal")
+		taoLogger.loggers[ConfigKey].Debug(2, "debug")
+		taoLogger.loggers[ConfigKey].Debugf(2, "%s", "debug")
+		taoLogger.loggers[ConfigKey].Info(2, "info")
+		taoLogger.loggers[ConfigKey].Infof(2, "%s", "info")
+		taoLogger.loggers[ConfigKey].Warn(2, "warn")
+		taoLogger.loggers[ConfigKey].Warnf(2, "%s", "warn")
+		taoLogger.loggers[ConfigKey].Error(2, "error")
+		taoLogger.loggers[ConfigKey].Errorf(2, "%s", "error")
+		// taoLogger.loggers[ConfigKey].Panic(2, "panic")
+		// taoLogger.loggers[ConfigKey].Panicf(2, "%s", "panic")
+		// taoLogger.loggers[ConfigKey].Fatal(2, "fatal")
+		// taoLogger.loggers[ConfigKey].Fatalf(2, "%s", "fatal")
 	})
 
 	t.Run("PackageFunction", func(t *testing.T) {

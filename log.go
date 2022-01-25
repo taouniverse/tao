@@ -15,24 +15,24 @@
 package tao
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"log"
 	"os"
+	"sync"
 )
 
-// log config in tao
+// Log config in tao
 type Log struct {
 	Level LogLevel `json:"level"`
 	Type  LogType  `json:"type"`
-	Path  string   `json:"path"`
+	Path  string   `json:"path,omitempty"`
 }
 
 // LogLevel log's level
 type LogLevel uint8
-
-// LogType log's type
-type LogType string
 
 const (
 	// DEBUG (usually) is used in development env to print track info but disabled in production env to avoid overweight logs
@@ -49,19 +49,98 @@ const (
 	FATAL
 )
 
+// String for LogLevel Config
+func (l LogLevel) String() string {
+	switch l {
+	case DEBUG:
+		return "debug"
+	case INFO:
+		return "info"
+	case WARNING:
+		return "warning"
+	case ERROR:
+		return "error"
+	case PANIC:
+		return "panic"
+	case FATAL:
+		return "fatal"
+	default:
+		return fmt.Sprintf("tao.LogLevel(%d)", l)
+	}
+}
+
+// MarshalText instead of number
+func (l LogLevel) MarshalText() ([]byte, error) {
+	return []byte(l.String()), nil
+}
+
+// UnmarshalText to number
+func (l *LogLevel) UnmarshalText(text []byte) error {
+	if l == nil {
+		return errors.New("log: can't unmarshal a nil *LogLevel")
+	}
+	switch lower := string(bytes.ToLower(text)); lower {
+	case "debug":
+		*l = DEBUG
+	case "info":
+		*l = INFO
+	case "warning":
+		*l = WARNING
+	case "error":
+		*l = ERROR
+	case "panic":
+		*l = PANIC
+	case "fatal":
+		*l = FATAL
+	default:
+		return fmt.Errorf("log: unrecognized LogLevel: %q", lower)
+	}
+	return nil
+}
+
+// LogType log's type
+type LogType uint8
+
 const (
-	COMMAND LogType = "cmd"
-	File    LogType = "file"
+	Console LogType = 1 // 0b1
+	File    LogType = 2 // 0b10
 )
 
-// LevelPrefix to define log prefix of log level
-var LevelPrefix = map[LogLevel]string{
-	DEBUG:   "[D] ",
-	INFO:    "[I] ",
-	WARNING: "[W] ",
-	ERROR:   "[E] ",
-	PANIC:   "[P] ",
-	FATAL:   "[F] ",
+// String for LogType Config
+func (l LogType) String() string {
+	switch l {
+	case Console:
+		return "console"
+	case File:
+		return "file"
+	case Console | File:
+		return "console|file"
+	default:
+		return fmt.Sprintf("tao.LOGTYPE(%d)", l)
+	}
+}
+
+// MarshalText instead of number
+func (l LogType) MarshalText() ([]byte, error) {
+	return []byte(l.String()), nil
+}
+
+// UnmarshalText to number
+func (l *LogType) UnmarshalText(text []byte) error {
+	if l == nil {
+		return errors.New("log: can't unmarshal a nil *LogType")
+	}
+	switch lower := string(bytes.ToLower(text)); lower {
+	case "console":
+		*l = Console
+	case "file":
+		*l = File
+	case "console|file", "file|console":
+		*l = File | Console
+	default:
+		return fmt.Errorf("log: unrecognized LogType: %q", lower)
+	}
+	return nil
 }
 
 // Logger in tao
@@ -82,176 +161,254 @@ type Logger interface {
 
 var _ Logger = (*logger)(nil)
 
-// logger implements Logger
+// logger implements Logger using standard lib
 type logger struct {
 	*log.Logger
 }
 
+// levelPrefix to define log prefix of log level
+var levelPrefix = map[LogLevel]string{
+	DEBUG:   "[D] ",
+	INFO:    "[I] ",
+	WARNING: "[W] ",
+	ERROR:   "[E] ",
+	PANIC:   "[P] ",
+	FATAL:   "[F] ",
+}
+
 // Debug logs info in debug level
 func (l *logger) Debug(calldepth int, v ...interface{}) {
-	if T.Level > DEBUG {
+	if t.Level > DEBUG {
 		return
 	}
-	l.Output(calldepth, LevelPrefix[DEBUG]+fmt.Sprintln(v...))
+	l.Output(calldepth, levelPrefix[DEBUG]+fmt.Sprintln(v...))
 }
 
 // Debugf logs info in debug level
 func (l *logger) Debugf(calldepth int, format string, v ...interface{}) {
-	if T.Level > DEBUG {
+	if t.Level > DEBUG {
 		return
 	}
-	l.Output(calldepth, LevelPrefix[DEBUG]+fmt.Sprintf(format, v...))
+	l.Output(calldepth, levelPrefix[DEBUG]+fmt.Sprintf(format, v...))
 }
 
 // Info logs info in info level
 func (l *logger) Info(calldepth int, v ...interface{}) {
-	if T.Level > INFO {
+	if t.Level > INFO {
 		return
 	}
-	l.Output(calldepth, LevelPrefix[INFO]+fmt.Sprintln(v...))
+	l.Output(calldepth, levelPrefix[INFO]+fmt.Sprintln(v...))
 }
 
 // Infof logs info in info level
 func (l *logger) Infof(calldepth int, format string, v ...interface{}) {
-	if T.Level > INFO {
+	if t.Level > INFO {
 		return
 	}
-	l.Output(calldepth, LevelPrefix[INFO]+fmt.Sprintf(format, v...))
+	l.Output(calldepth, levelPrefix[INFO]+fmt.Sprintf(format, v...))
 }
 
 // Warn logs info in warn level
 func (l *logger) Warn(calldepth int, v ...interface{}) {
-	if T.Level > WARNING {
+	if t.Level > WARNING {
 		return
 	}
-	l.Output(calldepth, LevelPrefix[WARNING]+fmt.Sprintln(v...))
+	l.Output(calldepth, levelPrefix[WARNING]+fmt.Sprintln(v...))
 }
 
 // Warnf logs info in warn level
 func (l *logger) Warnf(calldepth int, format string, v ...interface{}) {
-	if T.Level > WARNING {
+	if t.Level > WARNING {
 		return
 	}
-	l.Output(calldepth, LevelPrefix[WARNING]+fmt.Sprintf(format, v...))
+	l.Output(calldepth, levelPrefix[WARNING]+fmt.Sprintf(format, v...))
 }
 
 // Error logs info in error level
 func (l *logger) Error(calldepth int, v ...interface{}) {
-	if T.Level > ERROR {
+	if t.Level > ERROR {
 		return
 	}
-	l.Output(calldepth, LevelPrefix[ERROR]+fmt.Sprintln(v...))
+	l.Output(calldepth, levelPrefix[ERROR]+fmt.Sprintln(v...))
 }
 
 // Errorf logs info in error level
 func (l *logger) Errorf(calldepth int, format string, v ...interface{}) {
-	if T.Level > ERROR {
+	if t.Level > ERROR {
 		return
 	}
-	l.Output(calldepth, LevelPrefix[ERROR]+fmt.Sprintf(format, v...))
+	l.Output(calldepth, levelPrefix[ERROR]+fmt.Sprintf(format, v...))
 }
 
 // Panic logs info in panic level
 func (l *logger) Panic(calldepth int, v ...interface{}) {
-	if T.Level > PANIC {
+	if t.Level > PANIC {
 		return
 	}
-	s := LevelPrefix[PANIC] + fmt.Sprintln(v...)
+	s := levelPrefix[PANIC] + fmt.Sprintln(v...)
 	l.Output(calldepth, s)
 	panic(s)
 }
 
 // Panicf logs info in panic level
 func (l *logger) Panicf(calldepth int, format string, v ...interface{}) {
-	if T.Level > PANIC {
+	if t.Level > PANIC {
 		return
 	}
-	s := LevelPrefix[PANIC] + fmt.Sprintf(format, v...)
+	s := levelPrefix[PANIC] + fmt.Sprintf(format, v...)
 	l.Output(calldepth, s)
 	panic(s)
 }
 
 // Fatal logs info in fatal level
 func (l *logger) Fatal(calldepth int, v ...interface{}) {
-	if T.Level > FATAL {
+	if t.Level > FATAL {
 		return
 	}
-	l.Output(calldepth, LevelPrefix[FATAL]+fmt.Sprintln(v...))
+	l.Output(calldepth, levelPrefix[FATAL]+fmt.Sprintln(v...))
 	os.Exit(1)
 }
 
 // Fatalf logs info in fatal level
 func (l *logger) Fatalf(calldepth int, format string, v ...interface{}) {
-	if T.Level > FATAL {
+	if t.Level > FATAL {
 		return
 	}
-	l.Output(calldepth, LevelPrefix[FATAL]+fmt.Sprintf(format, v...))
+	l.Output(calldepth, levelPrefix[FATAL]+fmt.Sprintf(format, v...))
 	os.Exit(1)
 }
 
-// TaoLogger in global
-// default to provide based log print
-var TaoLogger Logger
+// Close this logger
+func (l *logger) Close() error {
+	return nil
+}
 
-// TaoWriter for TaoLogger
-var TaoWriter io.Writer
+// TaoLogger for tao
+type TaoLogger struct {
+	mu sync.Mutex
+
+	loggers map[string]Logger
+}
+
+// taoLogger in global
+// default to provide based log print
+var taoLogger = new(TaoLogger)
+
+// SetLogger to tao
+func SetLogger(configKey string, logger Logger) error {
+	taoLogger.mu.Lock()
+	defer taoLogger.mu.Unlock()
+
+	if taoLogger.loggers == nil {
+		taoLogger.loggers = make(map[string]Logger)
+	}
+
+	if _, ok := taoLogger.loggers[configKey]; ok {
+		return NewError(DuplicateCall, "log: %s has been set before", configKey)
+	}
+
+	taoLogger.loggers[configKey] = logger
+	return nil
+}
+
+// DeleteLogger of tao
+func DeleteLogger(configKey string) error {
+	taoLogger.mu.Lock()
+	defer taoLogger.mu.Unlock()
+
+	logger, ok := taoLogger.loggers[configKey]
+	if !ok {
+		return NewError(ParamInvalid, "log: %s not set", configKey)
+	}
+	delete(taoLogger.loggers, configKey)
+
+	// logger close
+	if l, ok := logger.(io.Closer); ok {
+		return l.Close()
+	}
+	return nil
+}
 
 // Debug function wrap of TaoLogger
 func Debug(v ...interface{}) {
-	TaoLogger.Debug(3, v...)
+	for _, l := range taoLogger.loggers {
+		l.Debug(3, v...)
+	}
 }
 
 // Debugf function wrap of TaoLogger
 func Debugf(format string, v ...interface{}) {
-	TaoLogger.Debugf(3, format, v...)
+	for _, l := range taoLogger.loggers {
+		l.Debugf(3, format, v...)
+	}
 }
 
 // Info function wrap of TaoLogger
 func Info(v ...interface{}) {
-	TaoLogger.Info(3, v...)
+	for _, l := range taoLogger.loggers {
+		l.Info(3, v...)
+	}
 }
 
 // Infof function wrap of TaoLogger
 func Infof(format string, v ...interface{}) {
-	TaoLogger.Infof(3, format, v...)
+	for _, l := range taoLogger.loggers {
+		l.Infof(3, format, v...)
+	}
 }
 
 // Warn function wrap of TaoLogger
 func Warn(v ...interface{}) {
-	TaoLogger.Warn(3, v...)
+	for _, l := range taoLogger.loggers {
+		l.Warn(3, v...)
+	}
 }
 
 // Warnf function wrap of TaoLogger
 func Warnf(format string, v ...interface{}) {
-	TaoLogger.Warnf(3, format, v...)
+	for _, l := range taoLogger.loggers {
+		l.Warnf(3, format, v...)
+	}
 }
 
 // Error function wrap of TaoLogger
 func Error(v ...interface{}) {
-	TaoLogger.Error(3, v...)
+	for _, l := range taoLogger.loggers {
+		l.Error(3, v...)
+	}
 }
 
 // Errorf function wrap of TaoLogger
 func Errorf(format string, v ...interface{}) {
-	TaoLogger.Errorf(3, format, v...)
+	for _, l := range taoLogger.loggers {
+		l.Errorf(3, format, v...)
+	}
 }
 
 // Panic function wrap of TaoLogger
 func Panic(v ...interface{}) {
-	TaoLogger.Panic(3, v...)
+	for _, l := range taoLogger.loggers {
+		l.Panic(3, v...)
+	}
 }
 
 // Panicf function wrap of TaoLogger
 func Panicf(format string, v ...interface{}) {
-	TaoLogger.Panicf(3, format, v...)
+	for _, l := range taoLogger.loggers {
+		l.Panicf(3, format, v...)
+	}
 }
 
 // Fatal function wrap of TaoLogger
 func Fatal(v ...interface{}) {
-	TaoLogger.Fatal(3, v...)
+	for _, l := range taoLogger.loggers {
+		l.Fatal(3, v...)
+	}
 }
 
 // Fatalf function wrap of TaoLogger
 func Fatalf(format string, v ...interface{}) {
-	TaoLogger.Fatalf(3, format, v...)
+	for _, l := range taoLogger.loggers {
+		l.Fatalf(3, format, v...)
+	}
 }

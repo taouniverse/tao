@@ -23,7 +23,7 @@ const (
 	errSplit = "\n==> "
 )
 
-// ErrorUnWrapper extension of error which can be unwrapped
+// ErrorUnWrapper describe error which can be unwrapped
 type ErrorUnWrapper interface {
 	error
 	Unwrap() error
@@ -70,7 +70,7 @@ var _ ErrorUnWrapper = (*errorTao)(nil)
 // message for user
 // implements ErrorTao & ErrorUnWrapper
 type errorTao struct {
-	mutex sync.RWMutex
+	mu sync.RWMutex
 
 	code    string
 	message string
@@ -78,7 +78,7 @@ type errorTao struct {
 	cause ErrorUnWrapper
 }
 
-// NewError constructor of Error
+// NewError constructor of ErrorTao
 func NewError(code, message string, a ...interface{}) ErrorTao {
 	return &errorTao{
 		code:    code,
@@ -88,15 +88,15 @@ func NewError(code, message string, a ...interface{}) ErrorTao {
 
 // Code string
 func (e *errorTao) Code() string {
-	e.mutex.RLock()
-	defer e.mutex.RUnlock()
+	e.mu.RLock()
+	defer e.mu.RUnlock()
 	return e.code
 }
 
 // Error string
 func (e *errorTao) Error() string {
-	e.mutex.RLock()
-	defer e.mutex.RUnlock()
+	e.mu.RLock()
+	defer e.mu.RUnlock()
 	if e.cause != nil {
 		return e.message + errSplit + e.cause.Error()
 	}
@@ -105,8 +105,8 @@ func (e *errorTao) Error() string {
 
 // Wrap error into errorTao
 func (e *errorTao) Wrap(err error) {
-	e.mutex.Lock()
-	defer e.mutex.Unlock()
+	e.mu.Lock()
+	defer e.mu.Unlock()
 	if err == nil {
 		return
 	}
@@ -125,15 +125,15 @@ func (e *errorTao) Wrap(err error) {
 
 // Cause of error
 func (e *errorTao) Cause() error {
-	e.mutex.RLock()
-	defer e.mutex.RUnlock()
+	e.mu.RLock()
+	defer e.mu.RUnlock()
 	return e.cause
 }
 
 // Unwrap e self
 func (e *errorTao) Unwrap() error {
-	e.mutex.RLock()
-	defer e.mutex.RUnlock()
+	e.mu.RLock()
+	defer e.mu.RUnlock()
 	return e.cause
 }
 
