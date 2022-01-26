@@ -288,11 +288,57 @@ type TaoLogger struct {
 	mu sync.Mutex
 
 	loggers map[string]Logger
+	writers map[string]io.Writer
 }
 
 // taoLogger in global
 // default to provide based log print
 var taoLogger = new(TaoLogger)
+
+// GetWriter in tao
+func GetWriter(configKey string) io.Writer {
+	return taoLogger.writers[configKey]
+}
+
+// SetWriter to tao
+func SetWriter(configKey string, w io.Writer) error {
+	taoLogger.mu.Lock()
+	defer taoLogger.mu.Unlock()
+
+	if taoLogger.writers == nil {
+		taoLogger.writers = make(map[string]io.Writer)
+	}
+
+	if _, ok := taoLogger.writers[configKey]; ok {
+		return NewError(DuplicateCall, "log: %s's writer has been set before", configKey)
+	}
+
+	taoLogger.writers[configKey] = w
+	return nil
+}
+
+// DeleteWriter of tao
+func DeleteWriter(configKey string) error {
+	taoLogger.mu.Lock()
+	defer taoLogger.mu.Unlock()
+
+	writer, ok := taoLogger.writers[configKey]
+	if !ok {
+		return NewError(ParamInvalid, "log: %s's writer not set", configKey)
+	}
+	delete(taoLogger.writers, configKey)
+
+	// writer close
+	if l, ok := writer.(io.Closer); ok {
+		return l.Close()
+	}
+	return nil
+}
+
+// GetLogger in tao
+func GetLogger(configKey string) Logger {
+	return taoLogger.loggers[configKey]
+}
 
 // SetLogger to tao
 func SetLogger(configKey string, logger Logger) error {
@@ -304,7 +350,7 @@ func SetLogger(configKey string, logger Logger) error {
 	}
 
 	if _, ok := taoLogger.loggers[configKey]; ok {
-		return NewError(DuplicateCall, "log: %s has been set before", configKey)
+		return NewError(DuplicateCall, "log: %s's logger has been set before", configKey)
 	}
 
 	taoLogger.loggers[configKey] = logger
@@ -318,7 +364,7 @@ func DeleteLogger(configKey string) error {
 
 	logger, ok := taoLogger.loggers[configKey]
 	if !ok {
-		return NewError(ParamInvalid, "log: %s not set", configKey)
+		return NewError(ParamInvalid, "log: %s's logger not set", configKey)
 	}
 	delete(taoLogger.loggers, configKey)
 

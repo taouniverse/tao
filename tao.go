@@ -160,7 +160,13 @@ func taoInit() {
 		writers = append(writers, file)
 	}
 
-	err = SetLogger(ConfigKey, &logger{log.New(io.MultiWriter(writers...), "", log.LstdFlags|log.Lshortfile)})
+	writer := io.MultiWriter(writers...)
+	err = SetWriter(ConfigKey, writer)
+	if err != nil {
+		panic(err)
+	}
+
+	err = SetLogger(ConfigKey, &logger{log.New(writer, "", log.LstdFlags|log.Lshortfile)})
 	if err != nil {
 		panic(err)
 	}
