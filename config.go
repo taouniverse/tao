@@ -18,7 +18,10 @@ import (
 	"encoding/json"
 	"flag"
 	"io/ioutil"
+	"os"
 	"path"
+	"strings"
+	"testing"
 
 	"gopkg.in/yaml.v3"
 )
@@ -56,6 +59,14 @@ func init() {
 	// xxx -f conf/config.yaml
 	confPath := flag.String("f", defaultYamlConfig, "config file path")
 
+	// flag.Parse() used in init would lead to testing failed.
+	// https://github.com/golang/go/issues/31859
+	for _, arg := range os.Args[1:] {
+		if strings.HasPrefix(arg, "-test.") {
+			testing.Init()
+			break
+		}
+	}
 	flag.Parse()
 
 	data, err := ioutil.ReadFile(*confPath)
