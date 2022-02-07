@@ -93,6 +93,11 @@ func (p *pipeline) Register(task *pipeTask) error {
 		return NewError(ParamInvalid, "pipeline: Register task is null")
 	}
 
+	// nothing to do
+	if task.Task == nil {
+		return nil
+	}
+
 	tName := task.Name()
 	if tName == "" {
 		return NewError(ParamInvalid, "pipeline: Register task name is empty")
@@ -245,7 +250,7 @@ func (p *pipeline) Close() error {
 
 	for i := len(closeSlice) - 1; i >= 0; i-- {
 		if e := closeSlice[i](); e != nil {
-			err = NewErrorUnWrapper(e.Error(), err)
+			err = NewErrorWrapped(e.Error(), err)
 		}
 	}
 

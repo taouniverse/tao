@@ -33,7 +33,7 @@ var _ Parameter = (*param)(nil)
 // param store params
 // implements Parameter
 type param struct {
-	mutex sync.RWMutex
+	mu sync.RWMutex
 
 	params map[string]interface{}
 }
@@ -47,29 +47,29 @@ func NewParameter() Parameter {
 
 // Get value with key
 func (p *param) Get(key string) (value interface{}) {
-	p.mutex.RLock()
-	defer p.mutex.RUnlock()
+	p.mu.RLock()
+	defer p.mu.RUnlock()
 	return p.params[key]
 }
 
 // Set value with key
 func (p *param) Set(key string, value interface{}) {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	p.params[key] = value
 }
 
 // Delete value with key
 func (p *param) Delete(key string) {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	delete(p.params, key)
 }
 
 // Clone param
 func (p *param) Clone() Parameter {
-	p.mutex.RLock()
-	defer p.mutex.RUnlock()
+	p.mu.RLock()
+	defer p.mu.RUnlock()
 	m := make(map[string]interface{}, len(p.params))
 	for k, v := range p.params {
 		m[k] = v
@@ -90,7 +90,7 @@ func (p *param) String() string {
 
 // MarshalJSON to marshal param
 func (p *param) MarshalJSON() ([]byte, error) {
-	p.mutex.RLock()
-	defer p.mutex.RUnlock()
+	p.mu.RLock()
+	defer p.mu.RUnlock()
 	return json.Marshal(p.params)
 }

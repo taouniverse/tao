@@ -19,13 +19,6 @@ import (
 	"testing"
 )
 
-// flag.Parse() used in init would lead to testing failed.
-// https://github.com/golang/go/issues/31859
-var _ = func() bool {
-	testing.Init()
-	return true
-}()
-
 func TestMain(m *testing.M) {
 	err := Run(context.Background(), nil)
 	if err != nil {

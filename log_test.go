@@ -15,23 +15,24 @@
 package tao
 
 import (
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
 func TestLogger(t *testing.T) {
 	t.Run("ObjectFunction", func(t *testing.T) {
-		TaoLogger.Debug(2, "debug")
-		TaoLogger.Debugf(2, "%s", "debug")
-		TaoLogger.Info(2, "info")
-		TaoLogger.Infof(2, "%s", "info")
-		TaoLogger.Warn(2, "warn")
-		TaoLogger.Warnf(2, "%s", "warn")
-		TaoLogger.Error(2, "error")
-		TaoLogger.Errorf(2, "%s", "error")
-		// TaoLogger.Panic(2, "panic")
-		// TaoLogger.Panicf(2, "%s", "panic")
-		// TaoLogger.Fatal(2, "fatal")
-		// TaoLogger.Fatalf(2, "%s", "fatal")
+		GetLogger(ConfigKey).Debug(2, "debug")
+		GetLogger(ConfigKey).Debugf(2, "%s", "debug")
+		GetLogger(ConfigKey).Info(2, "info")
+		GetLogger(ConfigKey).Infof(2, "%s", "info")
+		GetLogger(ConfigKey).Warn(2, "warn")
+		GetLogger(ConfigKey).Warnf(2, "%s", "warn")
+		GetLogger(ConfigKey).Error(2, "error")
+		GetLogger(ConfigKey).Errorf(2, "%s", "error")
+		// GetLogger(ConfigKey).Panic(2, "panic")
+		// GetLogger(ConfigKey).Panicf(2, "%s", "panic")
+		// GetLogger(ConfigKey).Fatal(2, "fatal")
+		// GetLogger(ConfigKey).Fatalf(2, "%s", "fatal")
 	})
 
 	t.Run("PackageFunction", func(t *testing.T) {
@@ -47,5 +48,25 @@ func TestLogger(t *testing.T) {
 		// Panicf("%s", "panic")
 		// Fatal("fatal")
 		// Fatalf("%s", "fatal")
+	})
+
+	t.Run("Writer", func(t *testing.T) {
+		writer := GetWriter(ConfigKey)
+		assert.NotNil(t, writer)
+
+		assert.Nil(t, DeleteWriter(ConfigKey))
+		assert.Nil(t, taoLogger.writers[ConfigKey])
+
+		assert.Nil(t, SetWriter(ConfigKey, writer))
+	})
+
+	t.Run("Logger", func(t *testing.T) {
+		logger := GetLogger(ConfigKey)
+		assert.NotNil(t, logger)
+
+		assert.Nil(t, DeleteLogger(ConfigKey))
+		assert.Nil(t, GetLogger(ConfigKey))
+
+		assert.Nil(t, SetLogger(ConfigKey, logger))
 	})
 }

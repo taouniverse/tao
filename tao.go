@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"os"
 )
@@ -25,8 +26,8 @@ import (
 // The Tao produced One; One produced Two; Two produced Three; Three produced All things.
 var tao Pipeline
 
-// T global config of tao
-var T *TaoConfig
+// t global config of tao
+var t *TaoConfig
 
 // Run tao
 func Run(ctx context.Context, param Parameter) (err error) {
@@ -81,7 +82,7 @@ type TaoConfig struct {
 var defaultTao = &TaoConfig{
 	Log: &Log{
 		Level: DEBUG,
-		Type:  COMMAND,
+		Type:  Console,
 		Path:  "./test.log",
 	},
 }
@@ -93,15 +94,19 @@ func (t *TaoConfig) Default() Config {
 
 // ValidSelf with some default values
 func (t *TaoConfig) ValidSelf() {
-	if t.Level < DEBUG || t.Level > FATAL {
-		t.Level = defaultTao.Level
-	}
-	if t.Type == "" {
-		t.Type = defaultTao.Type
-	}
-	if t.Type == File {
-		if t.Path == "" {
-			t.Path = defaultTao.Path
+	if t.Log == nil {
+		t.Log = defaultTao.Log
+	} else {
+		if t.Level < DEBUG || t.Level > FATAL {
+			t.Level = defaultTao.Level
+		}
+		if t.Type == 0 {
+			t.Type = defaultTao.Type
+		}
+		if t.Type&File != 0 {
+			if t.Path == "" {
+				t.Path = defaultTao.Path
+			}
 		}
 	}
 }
@@ -119,32 +124,52 @@ func (t *TaoConfig) RunAfter() []string {
 // ConfigKey for this repo
 const ConfigKey = "tao"
 
+// taoInit can only be called once
 func taoInit() {
 	// transfer config bytes to object
-	T = new(TaoConfig)
+	t = new(TaoConfig)
 	bytes, err := GetConfigBytes(ConfigKey)
 	if err != nil {
-		T = T.Default().(*TaoConfig)
+		t = t.Default().(*TaoConfig)
 	} else {
-		err = json.Unmarshal(bytes, &T)
+		err = json.Unmarshal(bytes, &t)
 		if err != nil {
 			panic(err)
 		}
 	}
 
 	// tao config
-	T.ValidSelf()
+	t.ValidSelf()
 
-	switch T.Type {
-	case File:
-		TaoWriter, err = os.OpenFile(T.Path, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	err = SetConfig(ConfigKey, t)
+	if err != nil {
+		panic(err)
+	}
+
+	writers := make([]io.Writer, 0)
+
+	if t.Type&Console != 0 {
+		writers = append(writers, os.Stdout)
+	}
+
+	if t.Type&File != 0 {
+		file, err := os.OpenFile(t.Path, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 		if err != nil {
 			panic(err)
 		}
-	default:
-		TaoWriter = os.Stdout
+		writers = append(writers, file)
 	}
-	TaoLogger = &logger{log.New(TaoWriter, "", log.LstdFlags|log.Lshortfile)}
+
+	writer := io.MultiWriter(writers...)
+	err = SetWriter(ConfigKey, writer)
+	if err != nil {
+		panic(err)
+	}
+
+	err = SetLogger(ConfigKey, &logger{log.New(writer, "", log.LstdFlags|log.Lshortfile)})
+	if err != nil {
+		panic(err)
+	}
 
 	tao = NewPipeline(ConfigKey)
 
@@ -157,7 +182,7 @@ ___________
   |____|  (____  /\____/ 
                \/
 `
-	if !T.HideBanner {
+	if !t.HideBanner {
 		fmt.Print(banner)
 	}
 }
