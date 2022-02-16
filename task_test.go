@@ -42,8 +42,10 @@ var (
 
 func TestNewTask(t *testing.T) {
 	t.Run("TestTaskRun_Run", func(t *testing.T) {
+		assert.Equal(t, Runnable, taskHello.State())
 		assert.Equal(t, nil, taskHello.Run(context.Background(), NewParameter()))
 		assert.NotEqual(t, nil, taskHello.Run(context.Background(), NewParameter()))
+		assert.Equal(t, Over, taskHello.State())
 
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
@@ -71,5 +73,7 @@ func TestNewTask(t *testing.T) {
 		assert.Equal(t, nil, taskHello.Close())
 		assert.Equal(t, "II", taskError.Close().(ErrorTao).Code())
 		assert.Equal(t, TaskCloseTwice, taskError.Close().(ErrorTao).Code())
+
+		assert.Equal(t, Close, taskHello.State())
 	})
 }

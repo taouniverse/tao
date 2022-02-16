@@ -105,6 +105,7 @@ func TestNewPipeline(t *testing.T) {
 
 	t.Run("TestPipelineRun_Run", func(t *testing.T) {
 		assert.Equal(t, "", pipe.Error())
+		assert.Equal(t, Runnable, pipe.State())
 
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
@@ -113,6 +114,7 @@ func TestNewPipeline(t *testing.T) {
 		input := NewParameter()
 		input.Set("tao", "useful")
 		assert.NotEqual(t, nil, pipe.Run(context.Background(), input))
+		assert.Equal(t, Over, pipe.State())
 	})
 
 	t.Run("TestPipelineRun_Run_Twice", func(t *testing.T) {
@@ -157,5 +159,6 @@ func TestNewPipeline(t *testing.T) {
 	t.Run("TestPipelineRun_Close", func(t *testing.T) {
 		assert.NotEqual(t, nil, pipe.Close())
 		assert.Equal(t, TaskCloseTwice, pipe.Close().(ErrorTao).Code())
+		assert.Equal(t, Close, pipe.State())
 	})
 }

@@ -200,7 +200,7 @@ func (p *pipeline) taskRun(ctx context.Context, task *pipeTask, param Parameter,
 	}
 }
 
-// String context of Pipeline
+// Result of Pipeline
 func (p *pipeline) Result() Parameter {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
@@ -256,6 +256,13 @@ func (p *pipeline) Close() error {
 
 	p.state = Close
 	return err
+}
+
+// State of pipeline
+func (p *pipeline) State() TaskState {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+	return p.state
 }
 
 // PipelineOption optional function of pipeline
