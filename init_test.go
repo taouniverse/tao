@@ -1,4 +1,4 @@
-// Copyright 2021 huija
+// Copyright 2022 huija
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,15 +15,31 @@
 package tao
 
 import (
-	"context"
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
-func TestMain(m *testing.M) {
-	m.Run()
+func TestSetConfigBytesAll(t *testing.T) {
+	file := `
+{
+    "tao": {
+        "log": {
+            "level": "debug",
+            "type": "console"
+        },
+        "hide_banner": false
+    },
+    "print": {
+        "print": "==============  hello,tao!  ==============",
+        "times": 2,
+        "run_after": []
+    }
+}`
+	err := SetConfigBytesAll([]byte(file), Json)
+	assert.Nil(t, err)
+	_, err = GetConfigBytes(printConfigKey)
+	assert.Nil(t, err)
 
-	err := Run(context.Background(), nil)
-	if err != nil {
-		Panic(err)
-	}
+	// no use
+	DevelopMode()
 }

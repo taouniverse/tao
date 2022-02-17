@@ -16,21 +16,29 @@ package tao
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
+func TestJsonConfig(t *testing.T) {
+	_, err := GetConfigBytes("Unknown")
+	assert.NotNil(t, err)
+}
+
+const printConfigKey = "print"
+
 // printConfig implements Config
 type printConfig struct {
 	Print     string   `json:"print"`
+	Times     int      `json:"times"`
 	RunAfter_ []string `json:"run_after"`
 }
 
 var defaultPrint = &printConfig{
 	Print: "==============  hello,tao!  ==============",
+	Times: 1,
 }
 
 // Default config
@@ -42,6 +50,9 @@ func (l *printConfig) Default() Config {
 func (l *printConfig) ValidSelf() {
 	if l.Print == "" {
 		l.Print = defaultPrint.Print
+	}
+	if l.Times == 0 {
+		l.Times = defaultPrint.Times
 	}
 	if l.RunAfter_ == nil {
 		l.RunAfter_ = defaultPrint.RunAfter_
@@ -55,7 +66,9 @@ func (l *printConfig) ToTask() Task {
 		case <-ctx.Done():
 			return param, NewError(ContextCanceled, "test: ctx already Done")
 		default:
-			fmt.Println(l.Print)
+			for i := 0; i < l.Times; i++ {
+				fmt.Println(l.Print)
+			}
 			return param, nil
 		}
 	})
@@ -64,29 +77,4 @@ func (l *printConfig) ToTask() Task {
 // RunAfter defines pre task names
 func (l *printConfig) RunAfter() []string {
 	return l.RunAfter_
-}
-
-func TestJsonConfig(t *testing.T) {
-	file := `
-{
-    "print": {
-        "print": "==============  hello,tao!  ==============",
-        "run_after": []
-    }
-}`
-	err := json.Unmarshal([]byte(file), &configInterfaceMap)
-	assert.Nil(t, err)
-	bytes, err := GetConfigBytes("print")
-	assert.Nil(t, err)
-	c := new(printConfig)
-	err = json.Unmarshal(bytes, &c)
-	assert.Nil(t, err)
-	err = SetConfig("print", c)
-	assert.Nil(t, err)
-	err = SetConfig("print", c)
-	assert.NotNil(t, err)
-	t.Log(configMap["print"])
-
-	_, err = GetConfigBytes("Unknown")
-	assert.NotNil(t, err)
 }
