@@ -17,10 +17,6 @@ package tao
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-	"io"
-	"log"
-	"os"
 )
 
 // The Tao produced One; One produced Two; Two produced Three; Three produced All things.
@@ -39,12 +35,9 @@ func Run(ctx context.Context, param Parameter) (err error) {
 		param = NewParameter()
 	}
 
-	// fallback
 	if tao == nil {
-		// init default tao
-		taoInit()
-		// warning print
-		Warnf("%s not existed\n", defaultYamlConfig)
+		// refer to defaultConfigs in init.go to get some help
+		panic(NewError(UniverseNotInit, "none of %+v existed", defaultConfigs))
 	}
 
 	// non-block check
@@ -73,6 +66,9 @@ func Run(ctx context.Context, param Parameter) (err error) {
 	return tao.Run(ctx, param)
 }
 
+// ConfigKey for this repo
+const ConfigKey = "tao"
+
 // TaoConfig implements Config
 type TaoConfig struct {
 	*Log       `json:"log"`
@@ -82,7 +78,7 @@ type TaoConfig struct {
 var defaultTao = &TaoConfig{
 	Log: &Log{
 		Level: DEBUG,
-		Type:  Console,
+		Type:  Console | File,
 		Path:  "./test.log",
 	},
 }
@@ -119,70 +115,4 @@ func (t *TaoConfig) ToTask() Task {
 // RunAfter defines pre task names
 func (t *TaoConfig) RunAfter() []string {
 	return nil
-}
-
-// ConfigKey for this repo
-const ConfigKey = "tao"
-
-// taoInit can only be called once
-func taoInit() {
-	// transfer config bytes to object
-	t = new(TaoConfig)
-	bytes, err := GetConfigBytes(ConfigKey)
-	if err != nil {
-		t = t.Default().(*TaoConfig)
-	} else {
-		err = json.Unmarshal(bytes, &t)
-		if err != nil {
-			panic(err)
-		}
-	}
-
-	// tao config
-	t.ValidSelf()
-
-	err = SetConfig(ConfigKey, t)
-	if err != nil {
-		panic(err)
-	}
-
-	writers := make([]io.Writer, 0)
-
-	if t.Type&Console != 0 {
-		writers = append(writers, os.Stdout)
-	}
-
-	if t.Type&File != 0 {
-		file, err := os.OpenFile(t.Path, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-		if err != nil {
-			panic(err)
-		}
-		writers = append(writers, file)
-	}
-
-	writer := io.MultiWriter(writers...)
-	err = SetWriter(ConfigKey, writer)
-	if err != nil {
-		panic(err)
-	}
-
-	err = SetLogger(ConfigKey, &logger{log.New(writer, "", log.LstdFlags|log.Lshortfile)})
-	if err != nil {
-		panic(err)
-	}
-
-	tao = NewPipeline(ConfigKey)
-
-	// print banner
-	banner := `
-___________              
-\__    ___/____    ____  
-  |    |  \__  \  /  _ \ 
-  |    |   / __ \(  <_> )
-  |____|  (____  /\____/ 
-               \/
-`
-	if !t.HideBanner {
-		fmt.Print(banner)
-	}
 }

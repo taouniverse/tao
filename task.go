@@ -39,6 +39,7 @@ type Task interface {
 	Result() Parameter
 	Error() string
 	Close() error
+	State() TaskState
 }
 
 var _ Task = (*task)(nil)
@@ -174,6 +175,13 @@ func (t *task) Close() error {
 		return t.closeFun()
 	}
 	return nil
+}
+
+// State of task
+func (t *task) State() TaskState {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	return t.state
 }
 
 // TaskOption optional function of task

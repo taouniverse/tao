@@ -150,4 +150,5 @@ const (
 	TaskClosed      = "TaskClosed"
 	TaskRunning     = "TaskRunning"
 	ConfigNotFound  = "ConfigNotFound"
+	UniverseNotInit = "UniverseNotInit"
 )

@@ -1,4 +1,4 @@
-// Copyright 2021 huija
+// Copyright 2022 huija
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,15 +15,28 @@
 package tao
 
 import (
-	"context"
+	"encoding/json"
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
-func TestMain(m *testing.M) {
-	m.Run()
+func TestRegister(t *testing.T) {
+	err := Register(printConfigKey, func() error {
+		p := new(printConfig)
+		// 1. transfer config bytes to object
+		bytes, err := GetConfigBytes(printConfigKey)
+		if err != nil {
+			return err
+		}
+		err = json.Unmarshal(bytes, &p)
+		if err != nil {
+			return err
+		}
 
-	err := Run(context.Background(), nil)
-	if err != nil {
-		Panic(err)
-	}
+		p.ValidSelf()
+
+		// 2. set object to tao
+		return SetConfig(printConfigKey, p)
+	})
+	assert.Nil(t, err)
 }
