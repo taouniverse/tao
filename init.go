@@ -16,7 +16,6 @@ package tao
 
 import (
 	"encoding/json"
-	"fmt"
 	"gopkg.in/yaml.v3"
 	"io"
 	"io/ioutil"
@@ -45,15 +44,15 @@ var defaultConfigs = []string{
 
 func init() {
 	for _, confPath := range defaultConfigs {
-		SetConfigPath(confPath)
+		_ = SetConfigPath(confPath)
 	}
 }
 
 // SetConfigPath in init of your project
-func SetConfigPath(confPath string) {
+func SetConfigPath(confPath string) error {
 	data, err := ioutil.ReadFile(confPath)
 	if err != nil {
-		return
+		return err
 	}
 
 	switch t := path.Ext(confPath); t {
@@ -62,23 +61,18 @@ func SetConfigPath(confPath string) {
 	case ".json":
 		err = SetConfigBytesAll(data, Json)
 	default:
-		panic(NewError(ParamInvalid, "%s file not supported", t))
+		return NewError(ParamInvalid, "%s file not supported", t)
 	}
-	if err != nil {
-		panic(err)
-	}
+	return err
 }
 
 // DevelopMode called to enable default configs for all
-func DevelopMode() {
+func DevelopMode() error {
 	if tao != nil {
-		return
+		return NewError(DuplicateCall, "tao: init twice")
 	}
 
-	err := SetConfigBytesAll(nil, None)
-	if err != nil {
-		panic(err)
-	}
+	return SetConfigBytesAll(nil, None)
 }
 
 // SetConfigBytesAll & taoInit can only be called once
@@ -97,7 +91,7 @@ func SetConfigBytesAll(data []byte, configType ConfigType) (err error) {
 		}
 		if err == nil {
 			// init tao with config
-			taoInit()
+			err = taoInit()
 		}
 	default:
 		// caused by duplicate config(file & code)
@@ -107,7 +101,7 @@ func SetConfigBytesAll(data []byte, configType ConfigType) (err error) {
 }
 
 // taoInit can only be called once before tao.Run
-func taoInit() {
+func taoInit() error {
 	// transfer config bytes to object
 	t = new(TaoConfig)
 	bytes, err := GetConfigBytes(ConfigKey)
@@ -116,7 +110,7 @@ func taoInit() {
 	} else {
 		err = json.Unmarshal(bytes, &t)
 		if err != nil {
-			panic(err)
+			return err
 		}
 	}
 
@@ -125,7 +119,7 @@ func taoInit() {
 
 	err = SetConfig(ConfigKey, t)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	writers := make([]io.Writer, 0)
@@ -137,7 +131,7 @@ func taoInit() {
 	if t.Type&File != 0 {
 		file, err := os.OpenFile(t.Path, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 		if err != nil {
-			panic(err)
+			return err
 		}
 		writers = append(writers, file)
 	}
@@ -145,12 +139,12 @@ func taoInit() {
 	writer := io.MultiWriter(writers...)
 	err = SetWriter(ConfigKey, writer)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	err = SetLogger(ConfigKey, &logger{log.New(writer, "", log.LstdFlags|log.Lshortfile)})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	tao = NewPipeline(ConfigKey)
@@ -165,9 +159,12 @@ ___________
                \/
 `
 	if !t.HideBanner {
-		fmt.Print(banner)
+		_, err = writer.Write([]byte(banner))
+		if err != nil {
+			return err
+		}
 	}
 
 	// init universe after tao
-	universeInit()
+	return universeInit()
 }

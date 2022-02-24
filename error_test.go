@@ -16,6 +16,7 @@ package tao
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -29,7 +30,7 @@ var (
 	err4 = NewErrorWrapped("err4", nil)
 	err5 = NewErrorWrapped("err5", nil)
 
-	err = NewError("I", "Error I")
+	err = NewError(Unknown, "Error I")
 )
 
 func TestNewErrorWrapped(t *testing.T) {
@@ -59,18 +60,18 @@ func TestNewErrorWrapped(t *testing.T) {
 
 func TestNewError(t *testing.T) {
 	t.Run("TestError_Code", func(t *testing.T) {
-		assert.Equal(t, "I", err.Code())
+		assert.Equal(t, Unknown, err.Code())
 	})
 
 	t.Run("TestError_Error", func(t *testing.T) {
 		err.Wrap(err4)
-		assert.Equal(t, "Error I"+errSplit+err4.Error(), err.Error())
+		assert.Equal(t, fmt.Sprintf("<%s>Error I%s", Unknown, errSplit+err4.Error()), err.Error())
 	})
 
 	t.Run("TestError_Wrap", func(t *testing.T) {
 		err.Wrap(nil)
 		err.Wrap(err5)
-		assert.Equal(t, "Error I"+errSplit+err5.Error()+errSplit+err4.Error(), err.Error())
+		assert.Equal(t, fmt.Sprintf("<%s>Error I%s", Unknown, errSplit+err5.Error()+errSplit+err4.Error()), err.Error())
 	})
 
 	t.Run("TestError_Cause", func(t *testing.T) {
