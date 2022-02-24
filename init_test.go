@@ -41,5 +41,6 @@ func TestSetConfigBytesAll(t *testing.T) {
 	assert.Nil(t, err)
 
 	// no use
-	DevelopMode()
+	err = DevelopMode()
+	assert.NotNil(t, err)
 }
