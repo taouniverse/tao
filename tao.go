@@ -37,7 +37,7 @@ func Run(ctx context.Context, param Parameter) (err error) {
 
 	if tao == nil {
 		// refer to defaultConfigs in init.go to get some help
-		panic(NewError(UniverseNotInit, "none of %+v existed", defaultConfigs))
+		return NewError(UniverseNotInit, "none of %+v existed", defaultConfigs)
 	}
 
 	// non-block check

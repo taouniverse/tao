@@ -22,16 +22,14 @@ import (
 // universe for tao
 var universe = NewPipeline("universe")
 
-func universeInit() {
+func universeInit() error {
 	if universe.State() != Runnable {
-		panic(NewError(TaskRunTwice, "universe: init twice"))
+		return NewError(TaskRunTwice, "universe: init twice")
 	}
 	// universe run
 	timeout, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
-	if err := universe.Run(timeout, nil); err != nil {
-		panic(err)
-	}
+	return universe.Run(timeout, nil)
 }
 
 // Register to tao universe

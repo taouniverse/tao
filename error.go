@@ -98,7 +98,7 @@ func (e *errorTao) Error() string {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
 	if e.cause != nil {
-		return e.message + errSplit + e.cause.Error()
+		return fmt.Sprintf("<%s>%s", e.code, e.message+errSplit+e.cause.Error())
 	}
 	return e.message
 }
