@@ -77,9 +77,10 @@ type TaoConfig struct {
 
 var defaultTao = &TaoConfig{
 	Log: &Log{
-		Level: DEBUG,
-		Type:  Console | File,
-		Path:  "./test.log",
+		Level:     DEBUG,
+		Type:      Console | File,
+		CallDepth: 3,
+		Path:      "./test.log",
 	},
 }
 
@@ -98,6 +99,9 @@ func (t *TaoConfig) ValidSelf() {
 		}
 		if t.Type == 0 {
 			t.Type = defaultTao.Type
+		}
+		if t.CallDepth <= 0 {
+			t.CallDepth = defaultTao.CallDepth
 		}
 		if t.Type&File != 0 {
 			if t.Path == "" {

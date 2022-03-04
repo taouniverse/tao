@@ -142,7 +142,7 @@ func taoInit() error {
 		return err
 	}
 
-	err = SetLogger(ConfigKey, &logger{log.New(writer, "", log.LstdFlags|log.Lshortfile)})
+	err = SetLogger(ConfigKey, &logger{Logger: log.New(writer, "", log.LstdFlags|log.Lshortfile), calldepth: t.CallDepth})
 	if err != nil {
 		return err
 	}

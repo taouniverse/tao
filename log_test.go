@@ -21,18 +21,18 @@ import (
 
 func TestLogger(t *testing.T) {
 	t.Run("ObjectFunction", func(t *testing.T) {
-		GetLogger(ConfigKey).Debug(2, "debug")
-		GetLogger(ConfigKey).Debugf(2, "%s", "debug")
-		GetLogger(ConfigKey).Info(2, "info")
-		GetLogger(ConfigKey).Infof(2, "%s", "info")
-		GetLogger(ConfigKey).Warn(2, "warn")
-		GetLogger(ConfigKey).Warnf(2, "%s", "warn")
-		GetLogger(ConfigKey).Error(2, "error")
-		GetLogger(ConfigKey).Errorf(2, "%s", "error")
-		// GetLogger(ConfigKey).Panic(2, "panic")
-		// GetLogger(ConfigKey).Panicf(2, "%s", "panic")
-		// GetLogger(ConfigKey).Fatal(2, "fatal")
-		// GetLogger(ConfigKey).Fatalf(2, "%s", "fatal")
+		GetLogger(ConfigKey).Debug("debug")
+		GetLogger(ConfigKey).Debugf("%s", "debug")
+		GetLogger(ConfigKey).Info("info")
+		GetLogger(ConfigKey).Infof("%s", "info")
+		GetLogger(ConfigKey).Warn("warn")
+		GetLogger(ConfigKey).Warnf("%s", "warn")
+		GetLogger(ConfigKey).Error("error")
+		GetLogger(ConfigKey).Errorf("%s", "error")
+		// GetLogger(ConfigKey).Panic("panic")
+		// GetLogger(ConfigKey).Panicf("%s", "panic")
+		// GetLogger(ConfigKey).Fatal("fatal")
+		// GetLogger(ConfigKey).Fatalf("%s", "fatal")
 	})
 
 	t.Run("PackageFunction", func(t *testing.T) {

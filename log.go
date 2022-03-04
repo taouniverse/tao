@@ -26,9 +26,10 @@ import (
 
 // Log config in tao
 type Log struct {
-	Level LogLevel `json:"level"`
-	Type  LogType  `json:"type"`
-	Path  string   `json:"path,omitempty"`
+	Level     LogLevel `json:"level"`
+	Type      LogType  `json:"type"`
+	CallDepth int      `json:"callDepth"`
+	Path      string   `json:"path,omitempty"`
 }
 
 // LogLevel log's level
@@ -145,18 +146,18 @@ func (l *LogType) UnmarshalText(text []byte) error {
 
 // Logger in tao
 type Logger interface {
-	Debug(calldepth int, v ...interface{})
-	Debugf(calldepth int, format string, v ...interface{})
-	Info(calldepth int, v ...interface{})
-	Infof(calldepth int, format string, v ...interface{})
-	Warn(calldepth int, v ...interface{})
-	Warnf(calldepth int, format string, v ...interface{})
-	Error(calldepth int, v ...interface{})
-	Errorf(calldepth int, format string, v ...interface{})
-	Panic(calldepth int, v ...interface{})
-	Panicf(calldepth int, format string, v ...interface{})
-	Fatal(calldepth int, v ...interface{})
-	Fatalf(calldepth int, format string, v ...interface{})
+	Debug(v ...interface{})
+	Debugf(format string, v ...interface{})
+	Info(v ...interface{})
+	Infof(format string, v ...interface{})
+	Warn(v ...interface{})
+	Warnf(format string, v ...interface{})
+	Error(v ...interface{})
+	Errorf(format string, v ...interface{})
+	Panic(v ...interface{})
+	Panicf(format string, v ...interface{})
+	Fatal(v ...interface{})
+	Fatalf(format string, v ...interface{})
 }
 
 var _ Logger = (*logger)(nil)
@@ -164,6 +165,8 @@ var _ Logger = (*logger)(nil)
 // logger implements Logger using standard lib
 type logger struct {
 	*log.Logger
+
+	calldepth int
 }
 
 // levelPrefix to define log prefix of log level
@@ -177,104 +180,104 @@ var levelPrefix = map[LogLevel]string{
 }
 
 // Debug logs info in debug level
-func (l *logger) Debug(calldepth int, v ...interface{}) {
+func (l *logger) Debug(v ...interface{}) {
 	if t.Level > DEBUG {
 		return
 	}
-	l.Output(calldepth, levelPrefix[DEBUG]+fmt.Sprintln(v...))
+	l.Output(l.calldepth, levelPrefix[DEBUG]+fmt.Sprintln(v...))
 }
 
 // Debugf logs info in debug level
-func (l *logger) Debugf(calldepth int, format string, v ...interface{}) {
+func (l *logger) Debugf(format string, v ...interface{}) {
 	if t.Level > DEBUG {
 		return
 	}
-	l.Output(calldepth, levelPrefix[DEBUG]+fmt.Sprintf(format, v...))
+	l.Output(l.calldepth, levelPrefix[DEBUG]+fmt.Sprintf(format, v...))
 }
 
 // Info logs info in info level
-func (l *logger) Info(calldepth int, v ...interface{}) {
+func (l *logger) Info(v ...interface{}) {
 	if t.Level > INFO {
 		return
 	}
-	l.Output(calldepth, levelPrefix[INFO]+fmt.Sprintln(v...))
+	l.Output(l.calldepth, levelPrefix[INFO]+fmt.Sprintln(v...))
 }
 
 // Infof logs info in info level
-func (l *logger) Infof(calldepth int, format string, v ...interface{}) {
+func (l *logger) Infof(format string, v ...interface{}) {
 	if t.Level > INFO {
 		return
 	}
-	l.Output(calldepth, levelPrefix[INFO]+fmt.Sprintf(format, v...))
+	l.Output(l.calldepth, levelPrefix[INFO]+fmt.Sprintf(format, v...))
 }
 
 // Warn logs info in warn level
-func (l *logger) Warn(calldepth int, v ...interface{}) {
+func (l *logger) Warn(v ...interface{}) {
 	if t.Level > WARNING {
 		return
 	}
-	l.Output(calldepth, levelPrefix[WARNING]+fmt.Sprintln(v...))
+	l.Output(l.calldepth, levelPrefix[WARNING]+fmt.Sprintln(v...))
 }
 
 // Warnf logs info in warn level
-func (l *logger) Warnf(calldepth int, format string, v ...interface{}) {
+func (l *logger) Warnf(format string, v ...interface{}) {
 	if t.Level > WARNING {
 		return
 	}
-	l.Output(calldepth, levelPrefix[WARNING]+fmt.Sprintf(format, v...))
+	l.Output(l.calldepth, levelPrefix[WARNING]+fmt.Sprintf(format, v...))
 }
 
 // Error logs info in error level
-func (l *logger) Error(calldepth int, v ...interface{}) {
+func (l *logger) Error(v ...interface{}) {
 	if t.Level > ERROR {
 		return
 	}
-	l.Output(calldepth, levelPrefix[ERROR]+fmt.Sprintln(v...))
+	l.Output(l.calldepth, levelPrefix[ERROR]+fmt.Sprintln(v...))
 }
 
 // Errorf logs info in error level
-func (l *logger) Errorf(calldepth int, format string, v ...interface{}) {
+func (l *logger) Errorf(format string, v ...interface{}) {
 	if t.Level > ERROR {
 		return
 	}
-	l.Output(calldepth, levelPrefix[ERROR]+fmt.Sprintf(format, v...))
+	l.Output(l.calldepth, levelPrefix[ERROR]+fmt.Sprintf(format, v...))
 }
 
 // Panic logs info in panic level
-func (l *logger) Panic(calldepth int, v ...interface{}) {
+func (l *logger) Panic(v ...interface{}) {
 	if t.Level > PANIC {
 		return
 	}
 	s := levelPrefix[PANIC] + fmt.Sprintln(v...)
-	l.Output(calldepth, s)
+	l.Output(l.calldepth, s)
 	panic(s)
 }
 
 // Panicf logs info in panic level
-func (l *logger) Panicf(calldepth int, format string, v ...interface{}) {
+func (l *logger) Panicf(format string, v ...interface{}) {
 	if t.Level > PANIC {
 		return
 	}
 	s := levelPrefix[PANIC] + fmt.Sprintf(format, v...)
-	l.Output(calldepth, s)
+	l.Output(l.calldepth, s)
 	panic(s)
 }
 
 // Fatal logs info in fatal level
-func (l *logger) Fatal(calldepth int, v ...interface{}) {
+func (l *logger) Fatal(v ...interface{}) {
 	if t.Level > FATAL {
 		return
 	}
-	l.Output(calldepth, levelPrefix[FATAL]+fmt.Sprintln(v...))
+	l.Output(l.calldepth, levelPrefix[FATAL]+fmt.Sprintln(v...))
 	os.Exit(1)
 }
 
 // Fatalf logs info in fatal level
-func (l *logger) Fatalf(calldepth int, format string, v ...interface{}) {
+func (l *logger) Fatalf(format string, v ...interface{}) {
 	if t.Level > FATAL {
 		return
 	}
-	l.Output(calldepth, levelPrefix[FATAL]+fmt.Sprintf(format, v...))
+	l.Output(l.calldepth, levelPrefix[FATAL]+fmt.Sprintf(format, v...))
 	os.Exit(1)
 }
 
@@ -378,83 +381,83 @@ func DeleteLogger(configKey string) error {
 // Debug function wrap of TaoLogger
 func Debug(v ...interface{}) {
 	for _, l := range taoLogger.loggers {
-		l.Debug(3, v...)
+		l.Debug(v...)
 	}
 }
 
 // Debugf function wrap of TaoLogger
 func Debugf(format string, v ...interface{}) {
 	for _, l := range taoLogger.loggers {
-		l.Debugf(3, format, v...)
+		l.Debugf(format, v...)
 	}
 }
 
 // Info function wrap of TaoLogger
 func Info(v ...interface{}) {
 	for _, l := range taoLogger.loggers {
-		l.Info(3, v...)
+		l.Info(v...)
 	}
 }
 
 // Infof function wrap of TaoLogger
 func Infof(format string, v ...interface{}) {
 	for _, l := range taoLogger.loggers {
-		l.Infof(3, format, v...)
+		l.Infof(format, v...)
 	}
 }
 
 // Warn function wrap of TaoLogger
 func Warn(v ...interface{}) {
 	for _, l := range taoLogger.loggers {
-		l.Warn(3, v...)
+		l.Warn(v...)
 	}
 }
 
 // Warnf function wrap of TaoLogger
 func Warnf(format string, v ...interface{}) {
 	for _, l := range taoLogger.loggers {
-		l.Warnf(3, format, v...)
+		l.Warnf(format, v...)
 	}
 }
 
 // Error function wrap of TaoLogger
 func Error(v ...interface{}) {
 	for _, l := range taoLogger.loggers {
-		l.Error(3, v...)
+		l.Error(v...)
 	}
 }
 
 // Errorf function wrap of TaoLogger
 func Errorf(format string, v ...interface{}) {
 	for _, l := range taoLogger.loggers {
-		l.Errorf(3, format, v...)
+		l.Errorf(format, v...)
 	}
 }
 
 // Panic function wrap of TaoLogger
 func Panic(v ...interface{}) {
 	for _, l := range taoLogger.loggers {
-		l.Panic(3, v...)
+		l.Panic(v...)
 	}
 }
 
 // Panicf function wrap of TaoLogger
 func Panicf(format string, v ...interface{}) {
 	for _, l := range taoLogger.loggers {
-		l.Panicf(3, format, v...)
+		l.Panicf(format, v...)
 	}
 }
 
 // Fatal function wrap of TaoLogger
 func Fatal(v ...interface{}) {
 	for _, l := range taoLogger.loggers {
-		l.Fatal(3, v...)
+		l.Fatal(v...)
 	}
 }
 
 // Fatalf function wrap of TaoLogger
 func Fatalf(format string, v ...interface{}) {
 	for _, l := range taoLogger.loggers {
-		l.Fatalf(3, format, v...)
+		l.Fatalf(format, v...)
 	}
 }
