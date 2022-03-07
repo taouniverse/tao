@@ -10,19 +10,24 @@ on:
 
 jobs:
   test:
-    name: Test
+    name: Lint
     runs-on: ubuntu-latest
     steps:
       - name: Set up Go
-        uses: actions/setup-go@v1
+        uses: actions/setup-go@v2
         with:
           go-version: 1.17
 
       - name: Check out code
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2
+
+      - name: Lint Go Code
+        run:
+          go install golang.org/x/lint/golint@latest
+          golint -set_exit_status github.com/taouniverse/tao
 
       - name: Run Unit tests.
-        run: make test-coverage
+        run: ./test.sh
 
       - name: Upload Coverage report to CodeCov
         uses: codecov/codecov-action@v2
