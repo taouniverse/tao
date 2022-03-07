@@ -1,10 +1,15 @@
 name: TestUpload
 on:
   push:
-    branches:
+    branchs:
       - main
+    branches-ignore:
+      - dev
   pull_request:
     branches:
+    branches-ignore:
+      - main
+      - dev
 
 jobs:
   test:
