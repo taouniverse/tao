@@ -27,7 +27,9 @@ jobs:
           golint -set_exit_status github.com/taouniverse/tao
 
       - name: Run Unit tests.
-        run: ./test.sh
+        run: |
+          chmod +x test.sh
+          ./test.sh
 
       - name: Upload Coverage report to CodeCov
         uses: codecov/codecov-action@v2
