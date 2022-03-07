@@ -1,8 +1,13 @@
 name: TestUpload
 on:
   push:
-    branches: [ main ]
+    branchs:
+      - main
+      - !dev
   pull_request:
+    branches:
+      - !main
+      - !dev
 
 jobs:
   test:
