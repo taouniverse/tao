@@ -28,9 +28,12 @@ import (
 type ConfigType uint8
 
 const (
+	// None of config
 	None ConfigType = iota
+	// Yaml config
 	Yaml
-	Json
+	// JSON config
+	JSON
 )
 
 // List of default config files, traverse all until one is found
@@ -59,7 +62,7 @@ func SetConfigPath(confPath string) error {
 	case ".yaml", ".yml":
 		err = SetConfigBytesAll(data, Yaml)
 	case ".json":
-		err = SetConfigBytesAll(data, Json)
+		err = SetConfigBytesAll(data, JSON)
 	default:
 		return NewError(ParamInvalid, "%s file not supported", t)
 	}
@@ -85,7 +88,7 @@ func SetConfigBytesAll(data []byte, configType ConfigType) (err error) {
 		switch configType {
 		case Yaml:
 			err = yaml.Unmarshal(data, &configInterfaceMap)
-		case Json:
+		case JSON:
 			err = json.Unmarshal(data, &configInterfaceMap)
 		default:
 		}
@@ -103,10 +106,10 @@ func SetConfigBytesAll(data []byte, configType ConfigType) (err error) {
 // taoInit can only be called once before tao.Run
 func taoInit() error {
 	// transfer config bytes to object
-	t = new(TaoConfig)
+	t = new(taoConfig)
 	bytes, err := GetConfigBytes(ConfigKey)
 	if err != nil {
-		t = t.Default().(*TaoConfig)
+		t = t.Default().(*taoConfig)
 	} else {
 		err = json.Unmarshal(bytes, &t)
 		if err != nil {
@@ -142,7 +145,7 @@ func taoInit() error {
 		return err
 	}
 
-	err = SetLogger(ConfigKey, &logger{log.New(writer, "", log.LstdFlags|log.Lshortfile)})
+	err = SetLogger(ConfigKey, &logger{Logger: log.New(writer, "", log.LstdFlags|log.Lshortfile), calldepth: t.CallDepth})
 	if err != nil {
 		return err
 	}

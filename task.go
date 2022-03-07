@@ -23,10 +23,14 @@ import (
 type TaskState uint8
 
 const (
+	// Runnable task
 	Runnable TaskState = iota
+	// Running task
 	Running
+	// Over task
 	Over
-	Close
+	// Closed task
+	Closed
 )
 
 // TaskRun with param
@@ -99,7 +103,7 @@ func (t *task) Run(ctx context.Context, param Parameter) (err error) {
 		param = NewParameter()
 	}
 
-	if t.state == Close {
+	if t.state == Closed {
 		return NewError(TaskClosed, "task: task has been closed")
 	}
 
@@ -156,7 +160,7 @@ func (t *task) Error() string {
 	return t.err.Error()
 }
 
-// Close resource of Task
+// Closed resource of Task
 func (t *task) Close() error {
 	t.mu.Lock()
 	defer t.mu.Unlock()
@@ -165,11 +169,11 @@ func (t *task) Close() error {
 		return NewError(TaskRunning, "task: task is running")
 	}
 
-	if t.state == Close {
-		return NewError(TaskCloseTwice, "task: Close called twice for task "+t.name)
+	if t.state == Closed {
+		return NewError(TaskCloseTwice, "task: Closed called twice for task "+t.name)
 	}
 
-	t.state = Close
+	t.state = Closed
 
 	if t.closeFun != nil {
 		return t.closeFun()

@@ -23,7 +23,7 @@ import (
 var tao Pipeline
 
 // t global config of tao
-var t *TaoConfig
+var t *taoConfig
 
 // Run tao
 func Run(ctx context.Context, param Parameter) (err error) {
@@ -69,27 +69,28 @@ func Run(ctx context.Context, param Parameter) (err error) {
 // ConfigKey for this repo
 const ConfigKey = "tao"
 
-// TaoConfig implements Config
-type TaoConfig struct {
+// taoConfig implements Config
+type taoConfig struct {
 	*Log       `json:"log"`
 	HideBanner bool `json:"hide_banner"`
 }
 
-var defaultTao = &TaoConfig{
+var defaultTao = &taoConfig{
 	Log: &Log{
-		Level: DEBUG,
-		Type:  Console | File,
-		Path:  "./test.log",
+		Level:     DEBUG,
+		Type:      Console | File,
+		CallDepth: 3,
+		Path:      "./test.log",
 	},
 }
 
 // Default config
-func (t *TaoConfig) Default() Config {
+func (t *taoConfig) Default() Config {
 	return defaultTao
 }
 
 // ValidSelf with some default values
-func (t *TaoConfig) ValidSelf() {
+func (t *taoConfig) ValidSelf() {
 	if t.Log == nil {
 		t.Log = defaultTao.Log
 	} else {
@@ -98,6 +99,9 @@ func (t *TaoConfig) ValidSelf() {
 		}
 		if t.Type == 0 {
 			t.Type = defaultTao.Type
+		}
+		if t.CallDepth <= 0 {
+			t.CallDepth = defaultTao.CallDepth
 		}
 		if t.Type&File != 0 {
 			if t.Path == "" {
@@ -108,11 +112,11 @@ func (t *TaoConfig) ValidSelf() {
 }
 
 // ToTask transform itself to Task
-func (t *TaoConfig) ToTask() Task {
+func (t *taoConfig) ToTask() Task {
 	return nil
 }
 
 // RunAfter defines pre task names
-func (t *TaoConfig) RunAfter() []string {
+func (t *taoConfig) RunAfter() []string {
 	return nil
 }

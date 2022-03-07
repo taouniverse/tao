@@ -74,6 +74,6 @@ func TestNewTask(t *testing.T) {
 		assert.Equal(t, "II", taskError.Close().(ErrorTao).Code())
 		assert.Equal(t, TaskCloseTwice, taskError.Close().(ErrorTao).Code())
 
-		assert.Equal(t, Close, taskHello.State())
+		assert.Equal(t, Closed, taskHello.State())
 	})
 }
