@@ -55,7 +55,7 @@ func TestLogger(t *testing.T) {
 		assert.NotNil(t, writer)
 
 		assert.Nil(t, DeleteWriter(ConfigKey))
-		assert.Nil(t, taoLogger.writers[ConfigKey])
+		assert.Nil(t, globalLogger.writers[ConfigKey])
 
 		assert.Nil(t, SetWriter(ConfigKey, writer))
 	})

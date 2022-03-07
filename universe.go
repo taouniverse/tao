@@ -35,7 +35,7 @@ func universeInit() error {
 // Register to tao universe
 func Register(configKey string, fn func() error) error {
 	switch universe.State() {
-	case Running, Over, Close:
+	case Running, Over, Closed:
 		return fn()
 	default:
 		return universe.Register(NewPipeTask(NewTask(configKey, func(ctx context.Context, param Parameter) (Parameter, error) {

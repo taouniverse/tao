@@ -19,15 +19,15 @@ import (
 	"sync"
 )
 
-// pipeTask task in Pipeline
-type pipeTask struct {
+// PipeTask task in Pipeline
+type PipeTask struct {
 	Task
 	runAfter []string
 }
 
-// NewPipeTask constructor of pipeTask
-func NewPipeTask(task Task, runAfter ...string) *pipeTask {
-	return &pipeTask{
+// NewPipeTask constructor of PipeTask
+func NewPipeTask(task Task, runAfter ...string) *PipeTask {
+	return &PipeTask{
 		Task:     task,
 		runAfter: runAfter,
 	}
@@ -37,7 +37,7 @@ func NewPipeTask(task Task, runAfter ...string) *pipeTask {
 // pipeline is also a task
 type Pipeline interface {
 	Task
-	Register(task *pipeTask) error
+	Register(task *PipeTask) error
 }
 
 var _ Pipeline = (*pipeline)(nil)
@@ -49,11 +49,11 @@ type pipeline struct {
 
 	name string
 
-	tasks     []*pipeTask
+	tasks     []*PipeTask
 	signals   map[string]chan struct{}
 	closeChan chan func() error
-	postStart *pipeTask
-	preStop   *pipeTask
+	postStart *PipeTask
+	preStop   *PipeTask
 
 	results Parameter
 	err     ErrorTao
@@ -64,7 +64,7 @@ type pipeline struct {
 func NewPipeline(name string, options ...PipelineOption) Pipeline {
 	p := &pipeline{
 		name:    name,
-		tasks:   make([]*pipeTask, 0),
+		tasks:   make([]*PipeTask, 0),
 		signals: make(map[string]chan struct{}),
 		err:     nil,
 		state:   Runnable,
@@ -85,7 +85,7 @@ func (p *pipeline) Name() string {
 }
 
 // Register task to Pipeline
-func (p *pipeline) Register(task *pipeTask) error {
+func (p *pipeline) Register(task *PipeTask) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -124,7 +124,7 @@ func (p *pipeline) Run(ctx context.Context, param Parameter) error {
 		param = NewParameter()
 	}
 
-	if p.state == Close {
+	if p.state == Closed {
 		return NewError(TaskClosed, "pipeline: pipeline has been closed")
 	}
 
@@ -167,7 +167,7 @@ func (p *pipeline) Run(ctx context.Context, param Parameter) error {
 	return p.err
 }
 
-func (p *pipeline) taskRun(ctx context.Context, task *pipeTask, param Parameter, async bool) {
+func (p *pipeline) taskRun(ctx context.Context, task *PipeTask, param Parameter, async bool) {
 	if async {
 		defer p.wg.Done()
 	}
@@ -217,7 +217,7 @@ func (p *pipeline) Error() string {
 	return p.err.Error()
 }
 
-// Close resource of Pipeline
+// Closed resource of Pipeline
 func (p *pipeline) Close() error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -230,8 +230,8 @@ func (p *pipeline) Close() error {
 		return NewError(TaskRunning, "pipeline: pipeline is running")
 	}
 
-	if p.state == Close {
-		return NewError(TaskCloseTwice, "pipeline: Close called twice for pipeline "+p.name)
+	if p.state == Closed {
+		return NewError(TaskCloseTwice, "pipeline: Closed called twice for pipeline "+p.name)
 	}
 
 	// close chan before for range
@@ -254,7 +254,7 @@ func (p *pipeline) Close() error {
 		}
 	}
 
-	p.state = Close
+	p.state = Closed
 	return err
 }
 
@@ -269,14 +269,14 @@ func (p *pipeline) State() TaskState {
 type PipelineOption func(p *pipeline)
 
 // SetPostStartTask of pipeline
-func SetPostStartTask(t *pipeTask) PipelineOption {
+func SetPostStartTask(t *PipeTask) PipelineOption {
 	return func(p *pipeline) {
 		p.postStart = t
 	}
 }
 
 // SetPreStopTask of pipeline
-func SetPreStopTask(t *pipeTask) PipelineOption {
+func SetPreStopTask(t *PipeTask) PipelineOption {
 	return func(p *pipeline) {
 		p.preStop = t
 	}

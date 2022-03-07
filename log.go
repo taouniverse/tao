@@ -103,8 +103,10 @@ func (l *LogLevel) UnmarshalText(text []byte) error {
 type LogType uint8
 
 const (
+	// Console log
 	Console LogType = 1 // 0b1
-	File    LogType = 2 // 0b10
+	// File log
+	File LogType = 2 // 0b10
 )
 
 // String for LogType Config
@@ -281,55 +283,54 @@ func (l *logger) Fatalf(format string, v ...interface{}) {
 	os.Exit(1)
 }
 
-// Close this logger
+// Closed this logger
 func (l *logger) Close() error {
 	return nil
 }
 
-// TaoLogger for tao
-type TaoLogger struct {
+// taoLogger for tao
+type taoLogger struct {
 	mu sync.Mutex
 
 	loggers map[string]Logger
 	writers map[string]io.Writer
 }
 
-// taoLogger in global
-// default to provide based log print
-var taoLogger = new(TaoLogger)
+// globalLogger which default to provide based log print
+var globalLogger = new(taoLogger)
 
 // GetWriter in tao
 func GetWriter(configKey string) io.Writer {
-	return taoLogger.writers[configKey]
+	return globalLogger.writers[configKey]
 }
 
 // SetWriter to tao
 func SetWriter(configKey string, w io.Writer) error {
-	taoLogger.mu.Lock()
-	defer taoLogger.mu.Unlock()
+	globalLogger.mu.Lock()
+	defer globalLogger.mu.Unlock()
 
-	if taoLogger.writers == nil {
-		taoLogger.writers = make(map[string]io.Writer)
+	if globalLogger.writers == nil {
+		globalLogger.writers = make(map[string]io.Writer)
 	}
 
-	if _, ok := taoLogger.writers[configKey]; ok {
+	if _, ok := globalLogger.writers[configKey]; ok {
 		return NewError(DuplicateCall, "log: %s's writer has been set before", configKey)
 	}
 
-	taoLogger.writers[configKey] = w
+	globalLogger.writers[configKey] = w
 	return nil
 }
 
 // DeleteWriter of tao
 func DeleteWriter(configKey string) error {
-	taoLogger.mu.Lock()
-	defer taoLogger.mu.Unlock()
+	globalLogger.mu.Lock()
+	defer globalLogger.mu.Unlock()
 
-	writer, ok := taoLogger.writers[configKey]
+	writer, ok := globalLogger.writers[configKey]
 	if !ok {
 		return NewError(ParamInvalid, "log: %s's writer not set", configKey)
 	}
-	delete(taoLogger.writers, configKey)
+	delete(globalLogger.writers, configKey)
 
 	// writer close
 	if l, ok := writer.(io.Closer); ok {
@@ -340,36 +341,36 @@ func DeleteWriter(configKey string) error {
 
 // GetLogger in tao
 func GetLogger(configKey string) Logger {
-	return taoLogger.loggers[configKey]
+	return globalLogger.loggers[configKey]
 }
 
 // SetLogger to tao
 func SetLogger(configKey string, logger Logger) error {
-	taoLogger.mu.Lock()
-	defer taoLogger.mu.Unlock()
+	globalLogger.mu.Lock()
+	defer globalLogger.mu.Unlock()
 
-	if taoLogger.loggers == nil {
-		taoLogger.loggers = make(map[string]Logger)
+	if globalLogger.loggers == nil {
+		globalLogger.loggers = make(map[string]Logger)
 	}
 
-	if _, ok := taoLogger.loggers[configKey]; ok {
+	if _, ok := globalLogger.loggers[configKey]; ok {
 		return NewError(DuplicateCall, "log: %s's logger has been set before", configKey)
 	}
 
-	taoLogger.loggers[configKey] = logger
+	globalLogger.loggers[configKey] = logger
 	return nil
 }
 
 // DeleteLogger of tao
 func DeleteLogger(configKey string) error {
-	taoLogger.mu.Lock()
-	defer taoLogger.mu.Unlock()
+	globalLogger.mu.Lock()
+	defer globalLogger.mu.Unlock()
 
-	logger, ok := taoLogger.loggers[configKey]
+	logger, ok := globalLogger.loggers[configKey]
 	if !ok {
 		return NewError(ParamInvalid, "log: %s's logger not set", configKey)
 	}
-	delete(taoLogger.loggers, configKey)
+	delete(globalLogger.loggers, configKey)
 
 	// logger close
 	if l, ok := logger.(io.Closer); ok {
@@ -378,86 +379,86 @@ func DeleteLogger(configKey string) error {
 	return nil
 }
 
-// Debug function wrap of TaoLogger
+// Debug function wrap of taoLogger
 func Debug(v ...interface{}) {
-	for _, l := range taoLogger.loggers {
+	for _, l := range globalLogger.loggers {
 		l.Debug(v...)
 	}
 }
 
-// Debugf function wrap of TaoLogger
+// Debugf function wrap of taoLogger
 func Debugf(format string, v ...interface{}) {
-	for _, l := range taoLogger.loggers {
+	for _, l := range globalLogger.loggers {
 		l.Debugf(format, v...)
 	}
 }
 
-// Info function wrap of TaoLogger
+// Info function wrap of taoLogger
 func Info(v ...interface{}) {
-	for _, l := range taoLogger.loggers {
+	for _, l := range globalLogger.loggers {
 		l.Info(v...)
 	}
 }
 
-// Infof function wrap of TaoLogger
+// Infof function wrap of taoLogger
 func Infof(format string, v ...interface{}) {
-	for _, l := range taoLogger.loggers {
+	for _, l := range globalLogger.loggers {
 		l.Infof(format, v...)
 	}
 }
 
-// Warn function wrap of TaoLogger
+// Warn function wrap of taoLogger
 func Warn(v ...interface{}) {
-	for _, l := range taoLogger.loggers {
+	for _, l := range globalLogger.loggers {
 		l.Warn(v...)
 	}
 }
 
-// Warnf function wrap of TaoLogger
+// Warnf function wrap of taoLogger
 func Warnf(format string, v ...interface{}) {
-	for _, l := range taoLogger.loggers {
+	for _, l := range globalLogger.loggers {
 		l.Warnf(format, v...)
 	}
 }
 
-// Error function wrap of TaoLogger
+// Error function wrap of taoLogger
 func Error(v ...interface{}) {
-	for _, l := range taoLogger.loggers {
+	for _, l := range globalLogger.loggers {
 		l.Error(v...)
 	}
 }
 
-// Errorf function wrap of TaoLogger
+// Errorf function wrap of taoLogger
 func Errorf(format string, v ...interface{}) {
-	for _, l := range taoLogger.loggers {
+	for _, l := range globalLogger.loggers {
 		l.Errorf(format, v...)
 	}
 }
 
-// Panic function wrap of TaoLogger
+// Panic function wrap of taoLogger
 func Panic(v ...interface{}) {
-	for _, l := range taoLogger.loggers {
+	for _, l := range globalLogger.loggers {
 		l.Panic(v...)
 	}
 }
 
-// Panicf function wrap of TaoLogger
+// Panicf function wrap of taoLogger
 func Panicf(format string, v ...interface{}) {
-	for _, l := range taoLogger.loggers {
+	for _, l := range globalLogger.loggers {
 		l.Panicf(format, v...)
 	}
 }
 
-// Fatal function wrap of TaoLogger
+// Fatal function wrap of taoLogger
 func Fatal(v ...interface{}) {
-	for _, l := range taoLogger.loggers {
+	for _, l := range globalLogger.loggers {
 		l.Fatal(v...)
 	}
 }
 
-// Fatalf function wrap of TaoLogger
+// Fatalf function wrap of taoLogger
 func Fatalf(format string, v ...interface{}) {
-	for _, l := range taoLogger.loggers {
+	for _, l := range globalLogger.loggers {
 		l.Fatalf(format, v...)
 	}
 }

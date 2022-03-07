@@ -159,6 +159,6 @@ func TestNewPipeline(t *testing.T) {
 	t.Run("TestPipelineRun_Close", func(t *testing.T) {
 		assert.NotEqual(t, nil, pipe.Close())
 		assert.Equal(t, TaskCloseTwice, pipe.Close().(ErrorTao).Code())
-		assert.Equal(t, Close, pipe.State())
+		assert.Equal(t, Closed, pipe.State())
 	})
 }

@@ -35,7 +35,7 @@ func TestSetConfigBytesAll(t *testing.T) {
         "run_after": []
     }
 }`
-	err := SetConfigBytesAll([]byte(file), Json)
+	err := SetConfigBytesAll([]byte(file), JSON)
 	assert.Nil(t, err)
 	_, err = GetConfigBytes(printConfigKey)
 	assert.Nil(t, err)
