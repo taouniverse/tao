@@ -1,4 +1,4 @@
-name: TestUpload
+name: MainTest
 on:
   push:
     branchs:
@@ -13,7 +13,7 @@ on:
 
 jobs:
   test:
-    name: Lint
+    name: Lint-UT
     runs-on: ubuntu-latest
     steps:
       - name: Set up Go
@@ -27,7 +27,7 @@ jobs:
       - name: Lint Go Code
         run: |
           go install golang.org/x/lint/golint@latest
-          golint -set_exit_status github.com/taouniverse/tao
+          golint -set_exit_status $(go list ./... | grep -v vendor)
 
       - name: Run Unit tests.
         run: |
