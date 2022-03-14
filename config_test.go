@@ -33,7 +33,7 @@ const printConfigKey = "print"
 type printConfig struct {
 	Print     string   `json:"print"`
 	Times     int      `json:"times"`
-	RunAfterT []string `json:"run_after"`
+	RunAfters []string `json:"run_after"`
 }
 
 var defaultPrint = &printConfig{
@@ -54,8 +54,8 @@ func (l *printConfig) ValidSelf() {
 	if l.Times == 0 {
 		l.Times = defaultPrint.Times
 	}
-	if l.RunAfterT == nil {
-		l.RunAfterT = defaultPrint.RunAfterT
+	if l.RunAfters == nil {
+		l.RunAfters = defaultPrint.RunAfters
 	}
 }
 
@@ -76,5 +76,5 @@ func (l *printConfig) ToTask() Task {
 
 // RunAfter defines pre task names
 func (l *printConfig) RunAfter() []string {
-	return l.RunAfterT
+	return l.RunAfters
 }
