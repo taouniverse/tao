@@ -20,12 +20,18 @@ import (
 )
 
 func TestSetConfigBytesAll(t *testing.T) {
+	err := Register("before all", func() error {
+		t.Log("before tao universe init")
+		return nil
+	})
+	assert.Nil(t, err)
+
 	file := `
 {
     "tao": {
         "log": {
             "level": "debug",
-            "type": "console"
+            "type": "console|file"
         },
         "hide_banner": false
     },
@@ -35,8 +41,12 @@ func TestSetConfigBytesAll(t *testing.T) {
         "run_after": []
     }
 }`
-	err := SetConfigBytesAll([]byte(file), JSON)
+	err = SetConfigBytesAll([]byte(file), JSON)
 	assert.Nil(t, err)
+
+	err = SetConfigBytesAll([]byte(file), JSON)
+	assert.NotNil(t, err)
+
 	_, err = GetConfigBytes(printConfigKey)
 	assert.Nil(t, err)
 
