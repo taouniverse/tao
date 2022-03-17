@@ -16,14 +16,15 @@ package tao
 
 import (
 	"context"
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
-func TestMain(m *testing.M) {
-	m.Run()
+func TestRun(t *testing.T) {
+	t.Log(new(taoConfig).Default())
+	t.Log(new(taoConfig).ToTask())
+	t.Log(new(taoConfig).RunAfter())
 
 	err := Run(context.Background(), nil)
-	if err != nil {
-		Panic(err)
-	}
+	assert.Nil(t, err)
 }

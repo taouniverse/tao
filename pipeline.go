@@ -217,7 +217,7 @@ func (p *pipeline) Error() string {
 	return p.err.Error()
 }
 
-// Closed resource of Pipeline
+// Close resource of Pipeline
 func (p *pipeline) Close() error {
 	p.mu.Lock()
 	defer p.mu.Unlock()

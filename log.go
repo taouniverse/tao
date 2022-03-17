@@ -16,7 +16,6 @@ package tao
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -28,8 +27,9 @@ import (
 type Log struct {
 	Level     LogLevel `json:"level"`
 	Type      LogType  `json:"type"`
-	CallDepth int      `json:"callDepth"`
+	CallDepth int      `json:"call_depth"`
 	Path      string   `json:"path,omitempty"`
+	Disable   bool     `json:"disable"`
 }
 
 // LogLevel log's level
@@ -77,9 +77,6 @@ func (l LogLevel) MarshalText() ([]byte, error) {
 
 // UnmarshalText to number
 func (l *LogLevel) UnmarshalText(text []byte) error {
-	if l == nil {
-		return errors.New("log: can't unmarshal a nil *LogLevel")
-	}
 	switch lower := string(bytes.ToLower(text)); lower {
 	case "debug":
 		*l = DEBUG
@@ -130,9 +127,6 @@ func (l LogType) MarshalText() ([]byte, error) {
 
 // UnmarshalText to number
 func (l *LogType) UnmarshalText(text []byte) error {
-	if l == nil {
-		return errors.New("log: can't unmarshal a nil *LogType")
-	}
 	switch lower := string(bytes.ToLower(text)); lower {
 	case "console":
 		*l = Console
@@ -183,107 +177,107 @@ var levelPrefix = map[LogLevel]string{
 
 // Debug logs info in debug level
 func (l *logger) Debug(v ...interface{}) {
-	if t.Level > DEBUG {
+	if t.Log.Level > DEBUG {
 		return
 	}
-	l.Output(l.calldepth, levelPrefix[DEBUG]+fmt.Sprintln(v...))
+	_ = l.Output(l.calldepth, levelPrefix[DEBUG]+fmt.Sprintln(v...))
 }
 
 // Debugf logs info in debug level
 func (l *logger) Debugf(format string, v ...interface{}) {
-	if t.Level > DEBUG {
+	if t.Log.Level > DEBUG {
 		return
 	}
-	l.Output(l.calldepth, levelPrefix[DEBUG]+fmt.Sprintf(format, v...))
+	_ = l.Output(l.calldepth, levelPrefix[DEBUG]+fmt.Sprintf(format, v...))
 }
 
 // Info logs info in info level
 func (l *logger) Info(v ...interface{}) {
-	if t.Level > INFO {
+	if t.Log.Level > INFO {
 		return
 	}
-	l.Output(l.calldepth, levelPrefix[INFO]+fmt.Sprintln(v...))
+	_ = l.Output(l.calldepth, levelPrefix[INFO]+fmt.Sprintln(v...))
 }
 
 // Infof logs info in info level
 func (l *logger) Infof(format string, v ...interface{}) {
-	if t.Level > INFO {
+	if t.Log.Level > INFO {
 		return
 	}
-	l.Output(l.calldepth, levelPrefix[INFO]+fmt.Sprintf(format, v...))
+	_ = l.Output(l.calldepth, levelPrefix[INFO]+fmt.Sprintf(format, v...))
 }
 
 // Warn logs info in warn level
 func (l *logger) Warn(v ...interface{}) {
-	if t.Level > WARNING {
+	if t.Log.Level > WARNING {
 		return
 	}
-	l.Output(l.calldepth, levelPrefix[WARNING]+fmt.Sprintln(v...))
+	_ = l.Output(l.calldepth, levelPrefix[WARNING]+fmt.Sprintln(v...))
 }
 
 // Warnf logs info in warn level
 func (l *logger) Warnf(format string, v ...interface{}) {
-	if t.Level > WARNING {
+	if t.Log.Level > WARNING {
 		return
 	}
-	l.Output(l.calldepth, levelPrefix[WARNING]+fmt.Sprintf(format, v...))
+	_ = l.Output(l.calldepth, levelPrefix[WARNING]+fmt.Sprintf(format, v...))
 }
 
 // Error logs info in error level
 func (l *logger) Error(v ...interface{}) {
-	if t.Level > ERROR {
+	if t.Log.Level > ERROR {
 		return
 	}
-	l.Output(l.calldepth, levelPrefix[ERROR]+fmt.Sprintln(v...))
+	_ = l.Output(l.calldepth, levelPrefix[ERROR]+fmt.Sprintln(v...))
 }
 
 // Errorf logs info in error level
 func (l *logger) Errorf(format string, v ...interface{}) {
-	if t.Level > ERROR {
+	if t.Log.Level > ERROR {
 		return
 	}
-	l.Output(l.calldepth, levelPrefix[ERROR]+fmt.Sprintf(format, v...))
+	_ = l.Output(l.calldepth, levelPrefix[ERROR]+fmt.Sprintf(format, v...))
 }
 
 // Panic logs info in panic level
 func (l *logger) Panic(v ...interface{}) {
-	if t.Level > PANIC {
+	if t.Log.Level > PANIC {
 		return
 	}
 	s := levelPrefix[PANIC] + fmt.Sprintln(v...)
-	l.Output(l.calldepth, s)
+	_ = l.Output(l.calldepth, s)
 	panic(s)
 }
 
 // Panicf logs info in panic level
 func (l *logger) Panicf(format string, v ...interface{}) {
-	if t.Level > PANIC {
+	if t.Log.Level > PANIC {
 		return
 	}
 	s := levelPrefix[PANIC] + fmt.Sprintf(format, v...)
-	l.Output(l.calldepth, s)
+	_ = l.Output(l.calldepth, s)
 	panic(s)
 }
 
 // Fatal logs info in fatal level
 func (l *logger) Fatal(v ...interface{}) {
-	if t.Level > FATAL {
+	if t.Log.Level > FATAL {
 		return
 	}
-	l.Output(l.calldepth, levelPrefix[FATAL]+fmt.Sprintln(v...))
+	_ = l.Output(l.calldepth, levelPrefix[FATAL]+fmt.Sprintln(v...))
 	os.Exit(1)
 }
 
 // Fatalf logs info in fatal level
 func (l *logger) Fatalf(format string, v ...interface{}) {
-	if t.Level > FATAL {
+	if t.Log.Level > FATAL {
 		return
 	}
-	l.Output(l.calldepth, levelPrefix[FATAL]+fmt.Sprintf(format, v...))
+	_ = l.Output(l.calldepth, levelPrefix[FATAL]+fmt.Sprintf(format, v...))
 	os.Exit(1)
 }
 
-// Closed this logger
+// Close this logger
 func (l *logger) Close() error {
 	return nil
 }

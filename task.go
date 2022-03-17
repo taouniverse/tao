@@ -160,7 +160,7 @@ func (t *task) Error() string {
 	return t.err.Error()
 }
 
-// Closed resource of Task
+// Close resource of Task
 func (t *task) Close() error {
 	t.mu.Lock()
 	defer t.mu.Unlock()
