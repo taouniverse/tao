@@ -111,8 +111,15 @@ func TestLogger(t *testing.T) {
 		GetLogger(ConfigKey).Warnf("%s", "warn")
 		GetLogger(ConfigKey).Error("error")
 		GetLogger(ConfigKey).Errorf("%s", "error")
-		// GetLogger(ConfigKey).Panic("panic")
-		// GetLogger(ConfigKey).Panicf("%s", "panic")
+
+		defer func() {
+			assert.NotNil(t, recover())
+			defer func() {
+				assert.NotNil(t, recover())
+			}()
+			GetLogger(ConfigKey).Panicf("%s", "panic")
+		}()
+		GetLogger(ConfigKey).Panic("panic")
 		// GetLogger(ConfigKey).Fatal("fatal")
 		// GetLogger(ConfigKey).Fatalf("%s", "fatal")
 	})
@@ -126,8 +133,15 @@ func TestLogger(t *testing.T) {
 		Warnf("%s", "warn")
 		Error("error")
 		Errorf("%s", "error")
-		// Panic("panic")
-		// Panicf("%s", "panic")
+
+		defer func() {
+			assert.NotNil(t, recover())
+			defer func() {
+				assert.NotNil(t, recover())
+			}()
+			Panicf("%s", "panic")
+		}()
+		Panic("panic")
 		// Fatal("fatal")
 		// Fatalf("%s", "fatal")
 	})
