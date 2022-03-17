@@ -39,4 +39,7 @@ func TestRegister(t *testing.T) {
 		return SetConfig(printConfigKey, p)
 	})
 	assert.Nil(t, err)
+
+	err = SetConfig(printConfigKey, nil)
+	assert.NotNil(t, err)
 }

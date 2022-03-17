@@ -16,6 +16,7 @@ package tao
 
 import (
 	"github.com/stretchr/testify/assert"
+	"os"
 	"testing"
 )
 
@@ -26,7 +27,10 @@ func TestSetConfigBytesAll(t *testing.T) {
 	})
 	assert.Nil(t, err)
 
-	file := `
+	Fatal("fatal before all")
+	Fatalf("%s before all", "fatal")
+
+	file := []byte(`
 {
     "tao": {
         "log": {
@@ -40,11 +44,11 @@ func TestSetConfigBytesAll(t *testing.T) {
         "times": 2,
         "run_after": []
     }
-}`
-	err = SetConfigBytesAll([]byte(file), JSON)
+}`)
+	err = SetConfigBytesAll(file, JSON)
 	assert.Nil(t, err)
 
-	err = SetConfigBytesAll([]byte(file), JSON)
+	err = SetConfigBytesAll(file, Yaml)
 	assert.NotNil(t, err)
 
 	_, err = GetConfigBytes(printConfigKey)
@@ -53,4 +57,25 @@ func TestSetConfigBytesAll(t *testing.T) {
 	// no use
 	err = DevelopMode()
 	assert.NotNil(t, err)
+
+	err = os.WriteFile("conf.yaml", file, 6)
+	assert.Nil(t, err)
+
+	err = SetConfigPath("conf.yaml")
+	assert.NotNil(t, err)
+
+	err = os.Rename("conf.yaml", "conf.json")
+	assert.Nil(t, err)
+
+	err = SetConfigPath("conf.json")
+	assert.NotNil(t, err)
+
+	err = os.Rename("conf.json", "conf.unknown")
+	assert.Nil(t, err)
+
+	err = SetConfigPath("conf.unknown")
+	assert.NotNil(t, err)
+
+	err = os.Remove("conf.unknown")
+	assert.Nil(t, err)
 }
