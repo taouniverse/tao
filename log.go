@@ -28,8 +28,9 @@ import (
 type Log struct {
 	Level     LogLevel `json:"level"`
 	Type      LogType  `json:"type"`
-	CallDepth int      `json:"callDepth"`
+	CallDepth int      `json:"call_depth"`
 	Path      string   `json:"path,omitempty"`
+	Disable   bool     `json:"disable"`
 }
 
 // LogLevel log's level
@@ -183,7 +184,7 @@ var levelPrefix = map[LogLevel]string{
 
 // Debug logs info in debug level
 func (l *logger) Debug(v ...interface{}) {
-	if t.Level > DEBUG {
+	if t.Log.Level > DEBUG {
 		return
 	}
 	l.Output(l.calldepth, levelPrefix[DEBUG]+fmt.Sprintln(v...))
@@ -191,7 +192,7 @@ func (l *logger) Debug(v ...interface{}) {
 
 // Debugf logs info in debug level
 func (l *logger) Debugf(format string, v ...interface{}) {
-	if t.Level > DEBUG {
+	if t.Log.Level > DEBUG {
 		return
 	}
 	l.Output(l.calldepth, levelPrefix[DEBUG]+fmt.Sprintf(format, v...))
@@ -199,7 +200,7 @@ func (l *logger) Debugf(format string, v ...interface{}) {
 
 // Info logs info in info level
 func (l *logger) Info(v ...interface{}) {
-	if t.Level > INFO {
+	if t.Log.Level > INFO {
 		return
 	}
 	l.Output(l.calldepth, levelPrefix[INFO]+fmt.Sprintln(v...))
@@ -207,7 +208,7 @@ func (l *logger) Info(v ...interface{}) {
 
 // Infof logs info in info level
 func (l *logger) Infof(format string, v ...interface{}) {
-	if t.Level > INFO {
+	if t.Log.Level > INFO {
 		return
 	}
 	l.Output(l.calldepth, levelPrefix[INFO]+fmt.Sprintf(format, v...))
@@ -215,7 +216,7 @@ func (l *logger) Infof(format string, v ...interface{}) {
 
 // Warn logs info in warn level
 func (l *logger) Warn(v ...interface{}) {
-	if t.Level > WARNING {
+	if t.Log.Level > WARNING {
 		return
 	}
 	l.Output(l.calldepth, levelPrefix[WARNING]+fmt.Sprintln(v...))
@@ -223,7 +224,7 @@ func (l *logger) Warn(v ...interface{}) {
 
 // Warnf logs info in warn level
 func (l *logger) Warnf(format string, v ...interface{}) {
-	if t.Level > WARNING {
+	if t.Log.Level > WARNING {
 		return
 	}
 	l.Output(l.calldepth, levelPrefix[WARNING]+fmt.Sprintf(format, v...))
@@ -231,7 +232,7 @@ func (l *logger) Warnf(format string, v ...interface{}) {
 
 // Error logs info in error level
 func (l *logger) Error(v ...interface{}) {
-	if t.Level > ERROR {
+	if t.Log.Level > ERROR {
 		return
 	}
 	l.Output(l.calldepth, levelPrefix[ERROR]+fmt.Sprintln(v...))
@@ -239,7 +240,7 @@ func (l *logger) Error(v ...interface{}) {
 
 // Errorf logs info in error level
 func (l *logger) Errorf(format string, v ...interface{}) {
-	if t.Level > ERROR {
+	if t.Log.Level > ERROR {
 		return
 	}
 	l.Output(l.calldepth, levelPrefix[ERROR]+fmt.Sprintf(format, v...))
@@ -247,7 +248,7 @@ func (l *logger) Errorf(format string, v ...interface{}) {
 
 // Panic logs info in panic level
 func (l *logger) Panic(v ...interface{}) {
-	if t.Level > PANIC {
+	if t.Log.Level > PANIC {
 		return
 	}
 	s := levelPrefix[PANIC] + fmt.Sprintln(v...)
@@ -257,7 +258,7 @@ func (l *logger) Panic(v ...interface{}) {
 
 // Panicf logs info in panic level
 func (l *logger) Panicf(format string, v ...interface{}) {
-	if t.Level > PANIC {
+	if t.Log.Level > PANIC {
 		return
 	}
 	s := levelPrefix[PANIC] + fmt.Sprintf(format, v...)
@@ -267,7 +268,7 @@ func (l *logger) Panicf(format string, v ...interface{}) {
 
 // Fatal logs info in fatal level
 func (l *logger) Fatal(v ...interface{}) {
-	if t.Level > FATAL {
+	if t.Log.Level > FATAL {
 		return
 	}
 	l.Output(l.calldepth, levelPrefix[FATAL]+fmt.Sprintln(v...))
@@ -276,7 +277,7 @@ func (l *logger) Fatal(v ...interface{}) {
 
 // Fatalf logs info in fatal level
 func (l *logger) Fatalf(format string, v ...interface{}) {
-	if t.Level > FATAL {
+	if t.Log.Level > FATAL {
 		return
 	}
 	l.Output(l.calldepth, levelPrefix[FATAL]+fmt.Sprintf(format, v...))

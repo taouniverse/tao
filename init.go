@@ -22,6 +22,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"strings"
 )
 
 // ConfigType of config file
@@ -125,48 +126,47 @@ func taoInit() error {
 		return err
 	}
 
-	writers := make([]io.Writer, 0)
+	// SetLogger
+	if !t.Log.Disable {
+		writers := make([]io.Writer, 0)
 
-	if t.Type&Console != 0 {
-		writers = append(writers, os.Stdout)
-	}
+		if t.Log.Type&Console != 0 {
+			writers = append(writers, os.Stdout)
+		}
 
-	if t.Type&File != 0 {
-		file, err := os.OpenFile(t.Path, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+		if t.Log.Type&File != 0 {
+			file, err := os.OpenFile(t.Log.Path, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+			if err != nil {
+				return err
+			}
+			writers = append(writers, file)
+		}
+
+		writer := io.MultiWriter(writers...)
+		err = SetWriter(ConfigKey, writer)
 		if err != nil {
 			return err
 		}
-		writers = append(writers, file)
+
+		err = SetLogger(ConfigKey, &logger{Logger: log.New(writer, "", log.LstdFlags|log.Lshortfile), calldepth: t.Log.CallDepth})
+		if err != nil {
+			return err
+		}
 	}
 
-	writer := io.MultiWriter(writers...)
-	err = SetWriter(ConfigKey, writer)
-	if err != nil {
-		return err
-	}
-
-	err = SetLogger(ConfigKey, &logger{Logger: log.New(writer, "", log.LstdFlags|log.Lshortfile), calldepth: t.CallDepth})
-	if err != nil {
-		return err
+	// print banner
+	if !t.HideBanner {
+		w := GetWriter(ConfigKey)
+		if w == nil {
+			w = os.Stdout
+		}
+		_, err = w.Write([]byte(strings.TrimSpace(banner) + "\n"))
+		if err != nil {
+			return err
+		}
 	}
 
 	tao = NewPipeline(ConfigKey)
-
-	// print banner
-	banner := `
-___________              
-\__    ___/____    ____  
-  |    |  \__  \  /  _ \ 
-  |    |   / __ \(  <_> )
-  |____|  (____  /\____/ 
-               \/
-`
-	if !t.HideBanner {
-		_, err = writer.Write([]byte(banner))
-		if err != nil {
-			return err
-		}
-	}
 
 	// init universe after tao
 	return universeInit()

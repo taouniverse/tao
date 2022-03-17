@@ -69,9 +69,19 @@ func Run(ctx context.Context, param Parameter) (err error) {
 // ConfigKey for this repo
 const ConfigKey = "tao"
 
+// banner of tao
+const banner = `
+___________              
+\__    ___/____    ____  
+  |    |  \__  \  /  _ \ 
+  |    |   / __ \(  <_> )
+  |____|  (____  /\____/ 
+               \/
+`
+
 // taoConfig implements Config
 type taoConfig struct {
-	*Log       `json:"log"`
+	Log        *Log `json:"log"`
 	HideBanner bool `json:"hide_banner"`
 }
 
@@ -81,6 +91,7 @@ var defaultTao = &taoConfig{
 		Type:      Console | File,
 		CallDepth: 3,
 		Path:      "./test.log",
+		Disable:   false,
 	},
 }
 
@@ -94,18 +105,18 @@ func (t *taoConfig) ValidSelf() {
 	if t.Log == nil {
 		t.Log = defaultTao.Log
 	} else {
-		if t.Level < DEBUG || t.Level > FATAL {
-			t.Level = defaultTao.Level
+		if t.Log.Level < DEBUG || t.Log.Level > FATAL {
+			t.Log.Level = defaultTao.Log.Level
 		}
-		if t.Type == 0 {
-			t.Type = defaultTao.Type
+		if t.Log.Type == 0 {
+			t.Log.Type = defaultTao.Log.Type
 		}
-		if t.CallDepth <= 0 {
-			t.CallDepth = defaultTao.CallDepth
+		if t.Log.CallDepth <= 0 {
+			t.Log.CallDepth = defaultTao.Log.CallDepth
 		}
-		if t.Type&File != 0 {
-			if t.Path == "" {
-				t.Path = defaultTao.Path
+		if t.Log.Type&File != 0 {
+			if t.Log.Path == "" {
+				t.Log.Path = defaultTao.Log.Path
 			}
 		}
 	}
