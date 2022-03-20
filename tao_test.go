@@ -25,6 +25,11 @@ func TestRun(t *testing.T) {
 	t.Log(new(taoConfig).ToTask())
 	t.Log(new(taoConfig).RunAfter())
 
-	err := Run(context.Background(), nil)
+	cancel, cancelFunc := context.WithCancel(context.Background())
+	cancelFunc()
+	err := Run(cancel, nil)
+	assert.NotNil(t, err)
+
+	err = Run(nil, nil)
 	assert.Nil(t, err)
 }

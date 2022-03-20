@@ -20,22 +20,23 @@ import (
 	"testing"
 )
 
-func TestSetConfigBytesAll(t *testing.T) {
-	err := Register("before all", func() error {
-		t.Log("before tao universe init")
-		return nil
-	})
-	assert.Nil(t, err)
+func TestInit(t *testing.T) {
+	t.Run("TestBeforeInit", func(t *testing.T) {
+		err := Register("before all", func() error {
+			t.Log("before tao universe init")
+			return nil
+		})
+		assert.Nil(t, err)
 
-	Fatal("fatal before all")
-	Fatalf("%s before all", "fatal")
+		Fatal("fatal before all")
+		Fatalf("%s before all", "fatal")
+	})
 
 	file := []byte(`
 {
     "tao": {
         "log": {
-            "level": "debug",
-            "type": "console|file"
+            "level": "debug"
         },
         "hide_banner": false
     },
@@ -45,37 +46,42 @@ func TestSetConfigBytesAll(t *testing.T) {
         "run_after": []
     }
 }`)
-	err = SetConfigBytesAll(file, JSON)
-	assert.Nil(t, err)
 
-	err = SetConfigBytesAll(file, Yaml)
-	assert.NotNil(t, err)
+	t.Run("TestSetConfigBytesAll", func(t *testing.T) {
+		err := SetConfigBytesAll(file, JSON)
+		assert.Nil(t, err)
 
-	_, err = GetConfigBytes(printConfigKey)
-	assert.Nil(t, err)
+		err = SetConfigBytesAll(file, Yaml)
+		assert.NotNil(t, err)
 
-	// no use
-	err = DevelopMode()
-	assert.NotNil(t, err)
+		_, err = GetConfigBytes(printConfigKey)
+		assert.Nil(t, err)
 
-	err = os.WriteFile("conf.yaml", file, 6)
-	assert.Nil(t, err)
+	})
 
-	err = SetConfigPath("conf.yaml")
-	assert.NotNil(t, err)
+	t.Run("TestSetConfigPath", func(t *testing.T) {
+		err := DevelopMode()
+		assert.NotNil(t, err)
 
-	err = os.Rename("conf.yaml", "conf.json")
-	assert.Nil(t, err)
+		err = os.WriteFile("conf.yaml", file, 0666)
+		assert.Nil(t, err)
 
-	err = SetConfigPath("conf.json")
-	assert.NotNil(t, err)
+		err = SetConfigPath("conf.yaml")
+		assert.NotNil(t, err)
 
-	err = os.Rename("conf.json", "conf.unknown")
-	assert.Nil(t, err)
+		err = os.Rename("conf.yaml", "conf.json")
+		assert.Nil(t, err)
 
-	err = SetConfigPath("conf.unknown")
-	assert.NotNil(t, err)
+		err = SetConfigPath("conf.json")
+		assert.NotNil(t, err)
 
-	err = os.Remove("conf.unknown")
-	assert.Nil(t, err)
+		err = os.Rename("conf.json", "conf.unknown")
+		assert.Nil(t, err)
+
+		err = SetConfigPath("conf.unknown")
+		assert.NotNil(t, err)
+
+		err = os.Remove("conf.unknown")
+		assert.Nil(t, err)
+	})
 }
