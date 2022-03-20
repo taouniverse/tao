@@ -17,5 +17,4 @@ coverage.txt
 # vendor/
 
 # others
-conf/
 *.log
