@@ -42,4 +42,7 @@ func TestRegister(t *testing.T) {
 
 	err = SetConfig(printConfigKey, nil)
 	assert.NotNil(t, err)
+
+	err = universeInit()
+	assert.NotNil(t, err)
 }

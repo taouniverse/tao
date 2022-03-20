@@ -103,25 +103,27 @@ func TestLogger(t *testing.T) {
 	})
 
 	t.Run("ObjectFunction", func(t *testing.T) {
-		GetLogger(ConfigKey).Debug("debug")
-		GetLogger(ConfigKey).Debugf("%s", "debug")
-		GetLogger(ConfigKey).Info("info")
-		GetLogger(ConfigKey).Infof("%s", "info")
-		GetLogger(ConfigKey).Warn("warn")
-		GetLogger(ConfigKey).Warnf("%s", "warn")
-		GetLogger(ConfigKey).Error("error")
-		GetLogger(ConfigKey).Errorf("%s", "error")
+		logger := GetLogger(ConfigKey)
+		assert.NotNil(t, logger)
+		logger.Debug("debug")
+		logger.Debugf("%s", "debug")
+		logger.Info("info")
+		logger.Infof("%s", "info")
+		logger.Warn("warn")
+		logger.Warnf("%s", "warn")
+		logger.Error("error")
+		logger.Errorf("%s", "error")
 
 		defer func() {
 			assert.NotNil(t, recover())
 			defer func() {
 				assert.NotNil(t, recover())
 			}()
-			GetLogger(ConfigKey).Panicf("%s", "panic")
+			logger.Panicf("%s", "panic")
 		}()
-		GetLogger(ConfigKey).Panic("panic")
-		// GetLogger(ConfigKey).Fatal("fatal")
-		// GetLogger(ConfigKey).Fatalf("%s", "fatal")
+		logger.Panic("panic")
+		// logger.Fatal("fatal")
+		// logger.Fatalf("%s", "fatal")
 	})
 
 	t.Run("PackageFunction", func(t *testing.T) {
