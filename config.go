@@ -58,3 +58,59 @@ func SetConfig(key string, c Config) error {
 	configMap[key] = c
 	return nil
 }
+
+// ConfigKey for this repo
+const ConfigKey = "tao"
+
+// taoConfig implements Config
+type taoConfig struct {
+	Log        *Log `json:"log"`
+	HideBanner bool `json:"hide_banner"`
+}
+
+var defaultTao = &taoConfig{
+	Log: &Log{
+		Level:     DEBUG,
+		Type:      Console | File,
+		CallDepth: 3,
+		Path:      "./test.log",
+		Disable:   false,
+	},
+}
+
+// Default config
+func (t *taoConfig) Default() Config {
+	return defaultTao
+}
+
+// ValidSelf with some default values
+func (t *taoConfig) ValidSelf() {
+	if t.Log == nil {
+		t.Log = defaultTao.Log
+	} else {
+		if t.Log.Level < DEBUG || t.Log.Level > FATAL {
+			t.Log.Level = defaultTao.Log.Level
+		}
+		if t.Log.Type == 0 {
+			t.Log.Type = defaultTao.Log.Type
+		}
+		if t.Log.CallDepth <= 0 {
+			t.Log.CallDepth = defaultTao.Log.CallDepth
+		}
+		if t.Log.Type&File != 0 {
+			if t.Log.Path == "" {
+				t.Log.Path = defaultTao.Log.Path
+			}
+		}
+	}
+}
+
+// ToTask transform itself to Task
+func (t *taoConfig) ToTask() Task {
+	return nil
+}
+
+// RunAfter defines pre task names
+func (t *taoConfig) RunAfter() []string {
+	return nil
+}

@@ -1,4 +1,4 @@
-// Copyright 2021 huija
+// Copyright 2022 huija
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,13 +17,31 @@ package tao
 import (
 	"context"
 	"encoding/json"
+	"os"
+	"os/signal"
+	"sync"
+	"syscall"
 )
 
-// The Tao produced One; One produced Two; Two produced Three; Three produced All things.
-var tao Pipeline
+// Universe of tao
+type Universe struct {
+	sync.WaitGroup
 
-// t global config of tao
-var t *taoConfig
+	Pipeline
+	universe Pipeline
+}
+
+// The Tao produced One; One produced Two; Two produced Three; Three produced All things.
+var tao = &Universe{
+	Pipeline: NewPipeline(ConfigKey),
+	universe: NewPipeline("universe"),
+}
+
+// Add of tao
+var Add = tao.Add
+
+// Done of tao
+var Done = tao.Done
 
 // Run tao
 func Run(ctx context.Context, param Parameter) (err error) {
@@ -47,7 +65,7 @@ func Run(ctx context.Context, param Parameter) (err error) {
 	default:
 	}
 
-	// tasks run
+	// tasks register
 	for _, c := range configMap {
 		c.ValidSelf()
 		err = tao.Register(NewPipeTask(c.ToTask(), c.RunAfter()...))
@@ -63,71 +81,57 @@ func Run(ctx context.Context, param Parameter) (err error) {
 	}
 	Debugf("config data: \n%s", string(cm))
 
-	return tao.Run(ctx, param)
+	// graceful shutdown
+	gracefulShutdown()
+
+	// tao run
+	err = tao.Run(ctx, param)
+	if err != nil {
+		return err
+	}
+
+	// tao wait
+	tao.Wait()
+	return
 }
 
-// ConfigKey for this repo
-const ConfigKey = "tao"
-
-// banner of tao
-const banner = `
-___________              
-\__    ___/____    ____  
-  |    |  \__  \  /  _ \ 
-  |    |   / __ \(  <_> )
-  |____|  (____  /\____/ 
-               \/
-`
-
-// taoConfig implements Config
-type taoConfig struct {
-	Log        *Log `json:"log"`
-	HideBanner bool `json:"hide_banner"`
-}
-
-var defaultTao = &taoConfig{
-	Log: &Log{
-		Level:     DEBUG,
-		Type:      Console | File,
-		CallDepth: 3,
-		Path:      "./test.log",
-		Disable:   false,
-	},
-}
-
-// Default config
-func (t *taoConfig) Default() Config {
-	return defaultTao
-}
-
-// ValidSelf with some default values
-func (t *taoConfig) ValidSelf() {
-	if t.Log == nil {
-		t.Log = defaultTao.Log
-	} else {
-		if t.Log.Level < DEBUG || t.Log.Level > FATAL {
-			t.Log.Level = defaultTao.Log.Level
-		}
-		if t.Log.Type == 0 {
-			t.Log.Type = defaultTao.Log.Type
-		}
-		if t.Log.CallDepth <= 0 {
-			t.Log.CallDepth = defaultTao.Log.CallDepth
-		}
-		if t.Log.Type&File != 0 {
-			if t.Log.Path == "" {
-				t.Log.Path = defaultTao.Log.Path
+// Register to tao universe
+func Register(configKey string, fn func() error) error {
+	switch tao.universe.State() {
+	case Running, Over, Closed:
+		return fn()
+	default:
+		return tao.universe.Register(NewPipeTask(NewTask(configKey, func(ctx context.Context, param Parameter) (Parameter, error) {
+			select {
+			case <-ctx.Done():
+				return param, NewError(ContextCanceled, "universe: %s init failed", configKey)
+			default:
+				return param, fn()
 			}
-		}
+		})))
 	}
 }
 
-// ToTask transform itself to Task
-func (t *taoConfig) ToTask() Task {
-	return nil
-}
-
-// RunAfter defines pre task names
-func (t *taoConfig) RunAfter() []string {
-	return nil
+func gracefulShutdown() {
+	sc := make(chan os.Signal, 1)
+	signal.Notify(sc)
+	go func() {
+		for {
+			sig := <-sc
+			if _, ok := map[os.Signal]struct{}{
+				syscall.SIGINT:  {},
+				syscall.SIGQUIT: {},
+				syscall.SIGTERM: {},
+			}[sig]; ok {
+				Debugf("got exiting signal now: %v\n", sig)
+				if err := tao.Close(); err != nil {
+					os.Exit(1)
+				} else {
+					os.Exit(0)
+				}
+			} else {
+				Debugf("got non-exiting signal: %v\n", sig)
+			}
+		}
+	}()
 }

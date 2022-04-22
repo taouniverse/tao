@@ -79,8 +79,6 @@ func NewPipeline(name string, options ...PipelineOption) Pipeline {
 
 // Name of Pipeline
 func (p *pipeline) Name() string {
-	p.mu.RLock()
-	defer p.mu.RUnlock()
 	return p.name
 }
 
@@ -101,6 +99,10 @@ func (p *pipeline) Register(task *PipeTask) error {
 	tName := task.Name()
 	if tName == "" {
 		return NewError(ParamInvalid, "pipeline: Register task name is empty")
+	}
+
+	if p.state == Running {
+		return NewError(TaskRunning, "pipeline: pipeline is running")
 	}
 	if _, dup := p.signals[tName]; dup {
 		return NewError(ParamInvalid, "pipeline: Register called twice for task "+tName)
@@ -144,7 +146,7 @@ func (p *pipeline) Run(ctx context.Context, param Parameter) error {
 	}()
 
 	// init closeChan & results when run
-	p.closeChan = make(chan func() error, len(p.tasks))
+	p.closeChan = make(chan func() error, len(p.tasks)+2)
 	p.results = NewParameter()
 
 	if p.postStart != nil {
@@ -180,6 +182,9 @@ func (p *pipeline) taskRun(ctx context.Context, task *PipeTask, param Parameter,
 		}
 	}
 
+	// register close before run
+	p.closeChan <- task.Close
+
 	// run & wrap cause
 	err = task.Run(ctx, param)
 	if err != nil {
@@ -195,8 +200,6 @@ func (p *pipeline) taskRun(ctx context.Context, task *PipeTask, param Parameter,
 	if async {
 		// signal
 		close(p.signals[task.Name()])
-		// close fun
-		p.closeChan <- task.Close
 	}
 }
 
@@ -227,11 +230,11 @@ func (p *pipeline) Close() error {
 	)
 
 	if p.state == Running {
-		return NewError(TaskRunning, "pipeline: pipeline is running")
+		return NewError(TaskRunning, "pipeline: pipeline %s is running", p.Name())
 	}
 
 	if p.state == Closed {
-		return NewError(TaskCloseTwice, "pipeline: Closed called twice for pipeline "+p.name)
+		return NewError(TaskCloseTwice, "pipeline: Close called twice for pipeline %s", p.Name())
 	}
 
 	// close chan before for range
@@ -248,6 +251,7 @@ func (p *pipeline) Close() error {
 		closeSlice = append(closeSlice, p.preStop.Close)
 	}
 
+	// close functions are called in reverse order
 	for i := len(closeSlice) - 1; i >= 0; i-- {
 		if e := closeSlice[i](); e != nil {
 			err = NewErrorWrapped(e.Error(), err)

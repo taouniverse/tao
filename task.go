@@ -85,8 +85,6 @@ func NewTask(name string, fun TaskRun, options ...TaskOption) Task {
 
 // Name of Task
 func (t *task) Name() string {
-	t.mu.RLock()
-	defer t.mu.RUnlock()
 	return t.name
 }
 
@@ -166,11 +164,11 @@ func (t *task) Close() error {
 	defer t.mu.Unlock()
 
 	if t.state == Running {
-		return NewError(TaskRunning, "task: task is running")
+		return NewError(TaskRunning, "task: task %s is running", t.Name())
 	}
 
 	if t.state == Closed {
-		return NewError(TaskCloseTwice, "task: Closed called twice for task "+t.name)
+		return NewError(TaskCloseTwice, "task: Close called twice for task %s", t.Name())
 	}
 
 	t.state = Closed

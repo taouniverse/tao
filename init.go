@@ -15,6 +15,7 @@
 package tao
 
 import (
+	"context"
 	"encoding/json"
 	"gopkg.in/yaml.v3"
 	"io"
@@ -23,7 +24,18 @@ import (
 	"os"
 	"path"
 	"strings"
+	"time"
 )
+
+// banner of tao
+const banner = `
+___________              
+\__    ___/____    ____  
+  |    |  \__  \  /  _ \ 
+  |    |   / __ \(  <_> )
+  |____|  (____  /\____/ 
+               \/
+`
 
 // ConfigType of config file
 type ConfigType uint8
@@ -104,6 +116,9 @@ func SetConfigBytesAll(data []byte, configType ConfigType) (err error) {
 	return
 }
 
+// t global config of tao
+var t *taoConfig
+
 // taoInit can only be called once before tao.Run
 func taoInit() error {
 	// transfer config bytes to object
@@ -166,8 +181,16 @@ func taoInit() error {
 		}
 	}
 
-	tao = NewPipeline(ConfigKey)
-
 	// init universe after tao
 	return universeInit()
+}
+
+func universeInit() error {
+	if tao.universe.State() != Runnable {
+		return NewError(TaskRunTwice, "universe: init twice")
+	}
+	// universe run
+	timeout, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+	return tao.universe.Run(timeout, nil)
 }
