@@ -84,7 +84,7 @@ func SetConfigPath(confPath string) error {
 
 // DevelopMode called to enable default configs for all
 func DevelopMode() error {
-	if tao != nil {
+	if len(once) != 0 {
 		return NewError(DuplicateCall, "tao: init twice")
 	}
 

@@ -53,7 +53,7 @@ func Run(ctx context.Context, param Parameter) (err error) {
 		param = NewParameter()
 	}
 
-	if tao == nil {
+	if len(once) == 0 {
 		// refer to defaultConfigs in init.go to get some help
 		return NewError(UniverseNotInit, "none of %+v existed", defaultConfigs)
 	}
