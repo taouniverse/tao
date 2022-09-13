@@ -27,16 +27,6 @@ import (
 	"time"
 )
 
-// banner of tao
-const banner = `
-___________              
-\__    ___/____    ____  
-  |    |  \__  \  /  _ \ 
-  |    |   / __ \(  <_> )
-  |____|  (____  /\____/ 
-               \/
-`
-
 // ConfigType of config file
 type ConfigType uint8
 
@@ -170,12 +160,12 @@ func taoInit() error {
 	}
 
 	// print banner
-	if !t.HideBanner {
+	if !t.Banner.Hide {
 		w := GetWriter(ConfigKey)
 		if w == nil {
 			w = os.Stdout
 		}
-		_, err = w.Write([]byte(strings.TrimSpace(banner) + "\n"))
+		_, err = w.Write([]byte(strings.TrimSpace(t.Banner.Content) + "\n"))
 		if err != nil {
 			return err
 		}

@@ -64,8 +64,14 @@ const ConfigKey = "tao"
 
 // taoConfig implements Config
 type taoConfig struct {
-	Log        *Log `json:"log"`
-	HideBanner bool `json:"hide_banner"`
+	Log    *Log    `json:"log"`
+	Banner *Banner `json:"banner"`
+}
+
+// Banner config
+type Banner struct {
+	Hide    bool   `json:"hide"`
+	Content string `json:"content"`
 }
 
 var defaultTao = &taoConfig{
@@ -75,6 +81,17 @@ var defaultTao = &taoConfig{
 		CallDepth: 3,
 		Path:      "./test.log",
 		Disable:   false,
+	},
+	Banner: &Banner{
+		Hide: false,
+		Content: `
+___________              
+\__    ___/____    ____  
+  |    |  \__  \  /  _ \ 
+  |    |   / __ \(  <_> )
+  |____|  (____  /\____/ 
+               \/
+`,
 	},
 }
 
@@ -101,6 +118,13 @@ func (t *taoConfig) ValidSelf() {
 			if t.Log.Path == "" {
 				t.Log.Path = defaultTao.Log.Path
 			}
+		}
+	}
+	if t.Banner == nil {
+		t.Banner = defaultTao.Banner
+	} else {
+		if !t.Banner.Hide && t.Banner.Content == "" {
+			t.Banner.Content = defaultTao.Banner.Content
 		}
 	}
 }
