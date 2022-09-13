@@ -16,6 +16,7 @@ package tao
 
 import (
 	"encoding/json"
+	"log"
 )
 
 // Config interface
@@ -78,6 +79,7 @@ var defaultTao = &taoConfig{
 	Log: &Log{
 		Level:     DEBUG,
 		Type:      Console | File,
+		Flag:      log.LstdFlags | log.Lshortfile,
 		CallDepth: 3,
 		Path:      "./test.log",
 		Disable:   false,
