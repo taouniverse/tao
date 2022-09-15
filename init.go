@@ -54,7 +54,9 @@ func init() {
 	}
 }
 
-// SetConfigPath in init of your project
+var configPath = ""
+
+// SetConfigPath in your project's init()
 func SetConfigPath(confPath string) error {
 	data, err := ioutil.ReadFile(confPath)
 	if err != nil {
@@ -68,6 +70,9 @@ func SetConfigPath(confPath string) error {
 		err = SetConfigBytesAll(data, JSON)
 	default:
 		return NewError(ParamInvalid, "%s file not supported", t)
+	}
+	if err == nil {
+		configPath = confPath
 	}
 	return err
 }

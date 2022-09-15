@@ -79,6 +79,9 @@ func Run(ctx context.Context, param Parameter) (err error) {
 	if err != nil {
 		return err
 	}
+	if configPath != "" {
+		Debugf("load config from %q\n", configPath)
+	}
 	Debugf("config data: \n%s", string(cm))
 
 	// graceful shutdown
