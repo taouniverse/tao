@@ -16,29 +16,13 @@ package tao
 
 import (
 	"context"
-	"encoding/json"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
 func TestRegister(t *testing.T) {
-	err := Register(printConfigKey, func() error {
-		p := new(printConfig)
-		// 1. transfer config bytes to object
-		bytes, err := GetConfigBytes(printConfigKey)
-		if err != nil {
-			return err
-		}
-		err = json.Unmarshal(bytes, &p)
-		if err != nil {
-			return err
-		}
-
-		p.ValidSelf()
-
-		// 2. set object to tao
-		return SetConfig(printConfigKey, p)
-	})
+	p := new(printConfig)
+	err := Register(printConfigKey, p, nil)
 	assert.Nil(t, err)
 
 	err = SetConfig(printConfigKey, nil)
@@ -49,7 +33,6 @@ func TestRegister(t *testing.T) {
 }
 
 func TestRun(t *testing.T) {
-	t.Log(new(taoConfig).Default())
 	t.Log(new(taoConfig).ToTask())
 	t.Log(new(taoConfig).RunAfter())
 
@@ -62,4 +45,7 @@ func TestRun(t *testing.T) {
 	Done()
 	err = Run(nil, nil)
 	assert.Nil(t, err)
+
+	err = Run(nil, nil)
+	assert.NotNil(t, err)
 }

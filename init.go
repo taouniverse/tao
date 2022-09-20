@@ -102,7 +102,7 @@ func SetConfigBytesAll(data []byte, configType ConfigType) (err error) {
 		}
 		if err == nil {
 			// init tao with config
-			err = taoInit()
+			err = Register(ConfigKey, t, taoInit)
 		}
 	default:
 		// caused by duplicate config(file & code)
@@ -112,30 +112,10 @@ func SetConfigBytesAll(data []byte, configType ConfigType) (err error) {
 }
 
 // t global config of tao
-var t *taoConfig
+var t = new(taoConfig)
 
 // taoInit can only be called once before tao.Run
-func taoInit() error {
-	// transfer config bytes to object
-	t = new(taoConfig)
-	bytes, err := GetConfigBytes(ConfigKey)
-	if err != nil {
-		t = t.Default().(*taoConfig)
-	} else {
-		err = json.Unmarshal(bytes, &t)
-		if err != nil {
-			return err
-		}
-	}
-
-	// tao config
-	t.ValidSelf()
-
-	err = SetConfig(ConfigKey, t)
-	if err != nil {
-		return err
-	}
-
+func taoInit() (err error) {
 	// SetLogger
 	if !t.Log.Disable {
 		writers := make([]io.Writer, 0)

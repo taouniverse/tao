@@ -21,8 +21,6 @@ import (
 
 // Config interface
 type Config interface {
-	// Default config
-	Default() Config
 	// ValidSelf with some default values
 	ValidSelf()
 	// ToTask transform itself to Task
@@ -97,11 +95,6 @@ ___________
 	},
 }
 
-// Default config
-func (t *taoConfig) Default() Config {
-	return defaultTao
-}
-
 // ValidSelf with some default values
 func (t *taoConfig) ValidSelf() {
 	if t.Log == nil {
@@ -110,16 +103,19 @@ func (t *taoConfig) ValidSelf() {
 		if t.Log.Level < DEBUG || t.Log.Level > FATAL {
 			t.Log.Level = defaultTao.Log.Level
 		}
-		if t.Log.Type == 0 {
-			t.Log.Type = defaultTao.Log.Type
-		}
 		if t.Log.CallDepth <= 0 {
 			t.Log.CallDepth = defaultTao.Log.CallDepth
+		}
+		if t.Log.Type == 0 {
+			t.Log.Type = defaultTao.Log.Type
 		}
 		if t.Log.Type&File != 0 {
 			if t.Log.Path == "" {
 				t.Log.Path = defaultTao.Log.Path
 			}
+		}
+		if t.Log.Flag == 0 {
+			t.Log.Flag = defaultTao.Log.Flag
 		}
 	}
 	if t.Banner == nil {

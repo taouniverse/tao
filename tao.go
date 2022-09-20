@@ -67,7 +67,6 @@ func Run(ctx context.Context, param Parameter) (err error) {
 
 	// tasks register
 	for _, c := range configMap {
-		c.ValidSelf()
 		err = tao.Register(NewPipeTask(c.ToTask(), c.RunAfter()...))
 		if err != nil {
 			return err
@@ -98,18 +97,53 @@ func Run(ctx context.Context, param Parameter) (err error) {
 	return
 }
 
-// Register to tao universe
-func Register(configKey string, fn func() error) error {
+// Register unit to tao universe
+func Register(configKey string, config Config, setup func() error) error {
+	unitSetup := func() (err error) {
+		defer func() {
+			if err != nil {
+				return
+			}
+
+			// 3. setup unit
+			if setup != nil {
+				err = setup()
+			}
+		}()
+
+		if config == nil {
+			return
+		}
+
+		// 1. transfer config bytes to object
+		bytes, err := GetConfigBytes(configKey)
+		if err == nil {
+			err = json.Unmarshal(bytes, &config)
+			if err != nil {
+				return err
+			}
+		}
+
+		// 2. set object to tao
+		config.ValidSelf()
+		return SetConfig(configKey, config)
+	}
+
+	if configKey == ConfigKey {
+		// tao init
+		return unitSetup()
+	}
+
 	switch tao.universe.State() {
 	case Running, Over, Closed:
-		return fn()
+		return unitSetup()
 	default:
 		return tao.universe.Register(NewPipeTask(NewTask(configKey, func(ctx context.Context, param Parameter) (Parameter, error) {
 			select {
 			case <-ctx.Done():
 				return param, NewError(ContextCanceled, "universe: %s init failed", configKey)
 			default:
-				return param, fn()
+				return param, unitSetup()
 			}
 		})))
 	}
