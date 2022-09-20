@@ -17,6 +17,7 @@ package tao
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"os/signal"
 	"sync"
@@ -69,14 +70,14 @@ func Run(ctx context.Context, param Parameter) (err error) {
 	for _, c := range configMap {
 		err = tao.Register(NewPipeTask(c.ToTask(), c.RunAfter()...))
 		if err != nil {
-			return err
+			return NewErrorWrapped("tao: fail to register unit task", err)
 		}
 	}
 
 	// debug print
 	cm, err := json.MarshalIndent(configMap, "", "  ")
 	if err != nil {
-		return err
+		return NewErrorWrapped("tao: fail to marshal configmap", err)
 	}
 	if configPath != "" {
 		Debugf("load config from %q\n", configPath)
@@ -89,7 +90,7 @@ func Run(ctx context.Context, param Parameter) (err error) {
 	// tao run
 	err = tao.Run(ctx, param)
 	if err != nil {
-		return err
+		return NewErrorWrapped("tao: fail to run", err)
 	}
 
 	// tao wait
@@ -120,7 +121,7 @@ func Register(configKey string, config Config, setup func() error) error {
 		if err == nil {
 			err = json.Unmarshal(bytes, &config)
 			if err != nil {
-				return err
+				return NewErrorWrapped(fmt.Sprintf("tao: fail to unmarshal config bytes for '%q'", configKey), err)
 			}
 		}
 
@@ -141,7 +142,7 @@ func Register(configKey string, config Config, setup func() error) error {
 		return tao.universe.Register(NewPipeTask(NewTask(configKey, func(ctx context.Context, param Parameter) (Parameter, error) {
 			select {
 			case <-ctx.Done():
-				return param, NewError(ContextCanceled, "universe: %s init failed", configKey)
+				return param, NewError(ContextCanceled, "universe: fail to init %q", configKey)
 			default:
 				return param, unitSetup()
 			}

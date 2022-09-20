@@ -221,11 +221,10 @@ func (p *pipeline) Error() string {
 }
 
 // Close resource of Pipeline
-func (p *pipeline) Close() error {
+func (p *pipeline) Close() (err error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	var (
-		err        error
 		closeSlice = make([]func() error, 0, len(p.tasks)+2)
 	)
 
@@ -259,7 +258,7 @@ func (p *pipeline) Close() error {
 	}
 
 	p.state = Closed
-	return err
+	return
 }
 
 // State of pipeline

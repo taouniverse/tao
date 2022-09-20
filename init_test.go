@@ -50,10 +50,10 @@ func TestInit(t *testing.T) {
 }`)
 
 	t.Run("TestSetConfigBytesAll", func(t *testing.T) {
-		err := SetConfigBytesAll(file, JSON)
+		err := SetAllConfigBytes(file, JSON)
 		assert.Nil(t, err)
 
-		err = SetConfigBytesAll(file, Yaml)
+		err = SetAllConfigBytes(file, Yaml)
 		assert.NotNil(t, err)
 
 		_, err = GetConfigBytes(printConfigKey)

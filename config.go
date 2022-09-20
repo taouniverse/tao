@@ -43,7 +43,7 @@ func GetConfigBytes(key string) ([]byte, error) {
 	}
 	bytes, err := json.Marshal(c)
 	if err != nil {
-		return nil, NewErrorWrapped("config: marshal failed", err)
+		return nil, NewErrorWrapped("config: fail to marshal", err)
 	}
 	return bytes, nil
 }
