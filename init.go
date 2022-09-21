@@ -71,10 +71,11 @@ func SetConfigPath(confPath string) error {
 	default:
 		return NewError(ParamInvalid, "%s file not supported", t)
 	}
-	if err == nil {
-		configPath = confPath
+	if err != nil {
+		return NewErrorWrapped("init: fail to set config path", err)
 	}
-	return NewErrorWrapped("init: fail to set all config bytes", err)
+	configPath = confPath
+	return err
 }
 
 // DevelopMode called to enable default configs for all

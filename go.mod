@@ -11,6 +11,3 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 )
-
-// fix by ffa2ee15e9addea01de388ab989cce6cc8d23d84
-retract v0.1.2
