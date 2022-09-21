@@ -17,9 +17,9 @@ package tao
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"os"
 	"os/signal"
+	"reflect"
 	"sync"
 	"syscall"
 )
@@ -100,6 +100,11 @@ func Run(ctx context.Context, param Parameter) (err error) {
 
 // Register unit to tao universe
 func Register(configKey string, config Config, setup func() error) error {
+	rv := reflect.ValueOf(config)
+	if rv.Kind() != reflect.Pointer || rv.IsNil() {
+		return NewError(ParamInvalid, "tao: type of config should be pointer(notnull) instead of %+v", config)
+	}
+
 	unitSetup := func() (err error) {
 		defer func() {
 			if err != nil {
@@ -112,22 +117,25 @@ func Register(configKey string, config Config, setup func() error) error {
 			}
 		}()
 
-		if config == nil {
-			return
-		}
-
-		// 1. transfer config bytes to object
-		bytes, err := GetConfigBytes(configKey)
-		if err == nil {
-			err = json.Unmarshal(bytes, &config)
-			if err != nil {
-				return NewErrorWrapped(fmt.Sprintf("tao: fail to unmarshal config bytes for '%q'", configKey), err)
+		// 1. load config
+		err = LoadConfig(configKey, config)
+		if err != nil {
+			if e, ok := err.(ErrorTao); ok {
+				if e.Code() != ConfigNotFound {
+					return e
+				}
+			} else {
+				return e
 			}
 		}
 
-		// 2. set object to tao
+		// 2. set object to tao after valid self
 		config.ValidSelf()
 		return SetConfig(configKey, config)
+	}
+
+	if config != nil && configKey != config.Name() {
+		return NewError(ParamInvalid, "universe: config's name should be same as task's name")
 	}
 
 	if configKey == ConfigKey {

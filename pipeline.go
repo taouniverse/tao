@@ -105,7 +105,7 @@ func (p *pipeline) Register(task *PipeTask) error {
 		return NewError(TaskRunning, "pipeline: pipeline is running")
 	}
 	if _, dup := p.signals[tName]; dup {
-		return NewError(ParamInvalid, "pipeline: Register called twice for task "+tName)
+		return NewError(ParamInvalid, "pipeline: Register called twice for task %q", tName)
 	}
 
 	p.tasks = append(p.tasks, task)

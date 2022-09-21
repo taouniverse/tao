@@ -25,6 +25,9 @@ func TestRegister(t *testing.T) {
 	err := Register(printConfigKey, p, nil)
 	assert.Nil(t, err)
 
+	err = Register(printConfigKey, nil, nil)
+	assert.NotNil(t, err)
+
 	err = SetConfig(printConfigKey, nil)
 	assert.NotNil(t, err)
 

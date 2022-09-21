@@ -16,11 +16,14 @@ package tao
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 )
 
 // Config interface
 type Config interface {
+	// Name of Config
+	Name() string
 	// ValidSelf with some default values
 	ValidSelf()
 	// ToTask transform itself to Task
@@ -35,26 +38,30 @@ var configInterfaceMap = make(map[string]interface{})
 // transform interface to concrete Config type
 var configMap = make(map[string]Config)
 
-// GetConfigBytes in json schema by key of config
-func GetConfigBytes(key string) ([]byte, error) {
-	c, ok := configInterfaceMap[key]
+// LoadConfig by key of config
+func LoadConfig(configKey string, config Config) error {
+	c, ok := configInterfaceMap[configKey]
 	if !ok {
-		return nil, NewError(ConfigNotFound, "config: %s not found", key)
+		return NewError(ConfigNotFound, "config: %s not found", configKey)
 	}
 	bytes, err := json.Marshal(c)
 	if err != nil {
-		return nil, NewErrorWrapped("config: fail to marshal", err)
+		return NewErrorWrapped("config: fail to marshal", err)
 	}
-	return bytes, nil
+	err = json.Unmarshal(bytes, &config)
+	if err != nil {
+		return NewErrorWrapped(fmt.Sprintf("config: fail to unmarshal config bytes for '%q'", configKey), err)
+	}
+	return nil
 }
 
 // SetConfig by key & Config
-func SetConfig(key string, c Config) error {
-	_, ok := configMap[key]
+func SetConfig(configKey string, config Config) error {
+	_, ok := configMap[configKey]
 	if ok {
-		return NewError(DuplicateCall, "config: %s has been set before", key)
+		return NewError(DuplicateCall, "config: %s has been set before", configKey)
 	}
-	configMap[key] = c
+	configMap[configKey] = config
 	return nil
 }
 
@@ -93,6 +100,11 @@ ___________
                \/
 `,
 	},
+}
+
+// Name of Config
+func (t *taoConfig) Name() string {
+	return ConfigKey
 }
 
 // ValidSelf with some default values

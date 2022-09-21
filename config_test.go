@@ -23,8 +23,9 @@ import (
 )
 
 func TestJsonConfig(t *testing.T) {
-	_, err := GetConfigBytes("Unknown")
+	err := LoadConfig("Unknown", nil)
 	assert.NotNil(t, err)
+	assert.Equal(t, ConfigNotFound, err.(ErrorTao).Code())
 }
 
 const printConfigKey = "print"
@@ -41,9 +42,9 @@ var defaultPrint = &printConfig{
 	Times: 1,
 }
 
-// Default config
-func (l *printConfig) Default() Config {
-	return defaultPrint
+// Name of Config
+func (l *printConfig) Name() string {
+	return printConfigKey
 }
 
 // ValidSelf with some default values

@@ -15,14 +15,39 @@
 package tao
 
 import (
+	"context"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
 )
 
+const preConfigKey = "preAll"
+
+type preConfig struct {
+}
+
+// Name of Config
+func (p *preConfig) Name() string {
+	return preConfigKey
+}
+
+func (p *preConfig) ValidSelf() {
+	return
+}
+
+func (p *preConfig) ToTask() Task {
+	return NewTask(preConfigKey, func(ctx context.Context, param Parameter) (Parameter, error) {
+		return param, nil
+	})
+}
+
+func (p *preConfig) RunAfter() []string {
+	return nil
+}
+
 func TestInit(t *testing.T) {
 	t.Run("TestBeforeInit", func(t *testing.T) {
-		err := Register("before all", nil, func() error {
+		err := Register(preConfigKey, new(preConfig), func() error {
 			t.Log("before tao universe init")
 			return nil
 		})
@@ -49,40 +74,39 @@ func TestInit(t *testing.T) {
     }
 }`)
 
-	t.Run("TestSetConfigBytesAll", func(t *testing.T) {
-		err := SetAllConfigBytes(file, JSON)
-		assert.Nil(t, err)
-
-		err = SetAllConfigBytes(file, Yaml)
-		assert.NotNil(t, err)
-
-		_, err = GetConfigBytes(printConfigKey)
-		assert.Nil(t, err)
-	})
-
-	t.Run("TestSetConfigPath", func(t *testing.T) {
-		err := DevelopMode()
-		assert.NotNil(t, err)
-
-		err = os.WriteFile("conf.yaml", file, 0666)
+	t.Run("TestSetConfig", func(t *testing.T) {
+		err := os.WriteFile("conf.yaml", file, 0666)
 		assert.Nil(t, err)
 
 		err = SetConfigPath("conf.yaml")
-		assert.NotNil(t, err)
+		assert.Nil(t, err)
 
 		err = os.Rename("conf.yaml", "conf.json")
 		assert.Nil(t, err)
 
 		err = SetConfigPath("conf.json")
 		assert.NotNil(t, err)
+		assert.Equal(t, DuplicateCall, err.(ErrorUnWrapper).Unwrap().(ErrorTao).Code())
 
 		err = os.Rename("conf.json", "conf.unknown")
 		assert.Nil(t, err)
 
 		err = SetConfigPath("conf.unknown")
 		assert.NotNil(t, err)
+		assert.Equal(t, ParamInvalid, err.(ErrorTao).Code())
 
 		err = os.Remove("conf.unknown")
+		assert.Nil(t, err)
+
+		err = DevelopMode()
+		assert.NotNil(t, err)
+		assert.Equal(t, DuplicateCall, err.(ErrorTao).Code())
+
+		err = SetAllConfigBytes(file, Yaml)
+		assert.NotNil(t, err)
+		assert.Equal(t, DuplicateCall, err.(ErrorTao).Code())
+
+		err = LoadConfig(printConfigKey, new(printConfig))
 		assert.Nil(t, err)
 	})
 }
