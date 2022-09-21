@@ -17,6 +17,7 @@ package tao
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"os/signal"
 	"sync"
@@ -67,17 +68,19 @@ func Run(ctx context.Context, param Parameter) (err error) {
 
 	// tasks register
 	for _, c := range configMap {
-		c.ValidSelf()
 		err = tao.Register(NewPipeTask(c.ToTask(), c.RunAfter()...))
 		if err != nil {
-			return err
+			return NewErrorWrapped("tao: fail to register unit task", err)
 		}
 	}
 
 	// debug print
 	cm, err := json.MarshalIndent(configMap, "", "  ")
 	if err != nil {
-		return err
+		return NewErrorWrapped("tao: fail to marshal configmap", err)
+	}
+	if configPath != "" {
+		Debugf("load config from %q\n", configPath)
 	}
 	Debugf("config data: \n%s", string(cm))
 
@@ -87,7 +90,7 @@ func Run(ctx context.Context, param Parameter) (err error) {
 	// tao run
 	err = tao.Run(ctx, param)
 	if err != nil {
-		return err
+		return NewErrorWrapped("tao: fail to run", err)
 	}
 
 	// tao wait
@@ -95,18 +98,53 @@ func Run(ctx context.Context, param Parameter) (err error) {
 	return
 }
 
-// Register to tao universe
-func Register(configKey string, fn func() error) error {
+// Register unit to tao universe
+func Register(configKey string, config Config, setup func() error) error {
+	unitSetup := func() (err error) {
+		defer func() {
+			if err != nil {
+				return
+			}
+
+			// 3. setup unit
+			if setup != nil {
+				err = setup()
+			}
+		}()
+
+		if config == nil {
+			return
+		}
+
+		// 1. transfer config bytes to object
+		bytes, err := GetConfigBytes(configKey)
+		if err == nil {
+			err = json.Unmarshal(bytes, &config)
+			if err != nil {
+				return NewErrorWrapped(fmt.Sprintf("tao: fail to unmarshal config bytes for '%q'", configKey), err)
+			}
+		}
+
+		// 2. set object to tao
+		config.ValidSelf()
+		return SetConfig(configKey, config)
+	}
+
+	if configKey == ConfigKey {
+		// tao init
+		return unitSetup()
+	}
+
 	switch tao.universe.State() {
 	case Running, Over, Closed:
-		return fn()
+		return unitSetup()
 	default:
 		return tao.universe.Register(NewPipeTask(NewTask(configKey, func(ctx context.Context, param Parameter) (Parameter, error) {
 			select {
 			case <-ctx.Done():
-				return param, NewError(ContextCanceled, "universe: %s init failed", configKey)
+				return param, NewError(ContextCanceled, "universe: fail to init %q", configKey)
 			default:
-				return param, fn()
+				return param, unitSetup()
 			}
 		})))
 	}

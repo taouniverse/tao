@@ -27,16 +27,6 @@ import (
 	"time"
 )
 
-// banner of tao
-const banner = `
-___________              
-\__    ___/____    ____  
-  |    |  \__  \  /  _ \ 
-  |    |   / __ \(  <_> )
-  |____|  (____  /\____/ 
-               \/
-`
-
 // ConfigType of config file
 type ConfigType uint8
 
@@ -50,7 +40,7 @@ const (
 )
 
 // List of default config files, traverse all until one is found
-// if no one found, you can config in go code.(SetConfigPath || SetConfigBytesAll)
+// if no one found, you can config in go code.(SetConfigPath || SetAllConfigBytes)
 // if you do not want to config anything, call DevelopMode() to use default configs.
 var defaultConfigs = []string{
 	"./conf/config.yaml",
@@ -64,22 +54,27 @@ func init() {
 	}
 }
 
-// SetConfigPath in init of your project
+var configPath = ""
+
+// SetConfigPath in your project's init()
 func SetConfigPath(confPath string) error {
 	data, err := ioutil.ReadFile(confPath)
 	if err != nil {
-		return err
+		return NewErrorWrapped("init: fail to read config file", err)
 	}
 
 	switch t := path.Ext(confPath); t {
 	case ".yaml", ".yml":
-		err = SetConfigBytesAll(data, Yaml)
+		err = SetAllConfigBytes(data, Yaml)
 	case ".json":
-		err = SetConfigBytesAll(data, JSON)
+		err = SetAllConfigBytes(data, JSON)
 	default:
 		return NewError(ParamInvalid, "%s file not supported", t)
 	}
-	return err
+	if err == nil {
+		configPath = confPath
+	}
+	return NewErrorWrapped("init: fail to set all config bytes", err)
 }
 
 // DevelopMode called to enable default configs for all
@@ -88,14 +83,14 @@ func DevelopMode() error {
 		return NewError(DuplicateCall, "tao: init twice")
 	}
 
-	return SetConfigBytesAll(nil, None)
+	return SetAllConfigBytes(nil, None)
 }
 
-// SetConfigBytesAll & taoInit can only be called once
+// SetAllConfigBytes & taoInit can only be called once
 var once = make(chan struct{}, 1)
 
-// SetConfigBytesAll from config file or code
-func SetConfigBytesAll(data []byte, configType ConfigType) (err error) {
+// SetAllConfigBytes from config file or code
+func SetAllConfigBytes(data []byte, configType ConfigType) (err error) {
 	select {
 	case once <- struct{}{}:
 		switch configType {
@@ -107,7 +102,7 @@ func SetConfigBytesAll(data []byte, configType ConfigType) (err error) {
 		}
 		if err == nil {
 			// init tao with config
-			err = taoInit()
+			err = Register(ConfigKey, t, taoInit)
 		}
 	default:
 		// caused by duplicate config(file & code)
@@ -117,30 +112,10 @@ func SetConfigBytesAll(data []byte, configType ConfigType) (err error) {
 }
 
 // t global config of tao
-var t *taoConfig
+var t = new(taoConfig)
 
 // taoInit can only be called once before tao.Run
-func taoInit() error {
-	// transfer config bytes to object
-	t = new(taoConfig)
-	bytes, err := GetConfigBytes(ConfigKey)
-	if err != nil {
-		t = t.Default().(*taoConfig)
-	} else {
-		err = json.Unmarshal(bytes, &t)
-		if err != nil {
-			return err
-		}
-	}
-
-	// tao config
-	t.ValidSelf()
-
-	err = SetConfig(ConfigKey, t)
-	if err != nil {
-		return err
-	}
-
+func taoInit() (err error) {
 	// SetLogger
 	if !t.Log.Disable {
 		writers := make([]io.Writer, 0)
@@ -152,7 +127,7 @@ func taoInit() error {
 		if t.Log.Type&File != 0 {
 			file, err := os.OpenFile(t.Log.Path, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 			if err != nil {
-				return err
+				return NewErrorWrapped("init: fail to open log file", err)
 			}
 			writers = append(writers, file)
 		}
@@ -160,24 +135,24 @@ func taoInit() error {
 		writer := io.MultiWriter(writers...)
 		err = SetWriter(ConfigKey, writer)
 		if err != nil {
-			return err
+			return NewErrorWrapped("init: fail to set writer for 'tao'", err)
 		}
 
-		err = SetLogger(ConfigKey, &logger{Logger: log.New(writer, "", log.LstdFlags|log.Lshortfile), calldepth: t.Log.CallDepth})
+		err = SetLogger(ConfigKey, &logger{Logger: log.New(writer, "", int(t.Log.Flag)), calldepth: t.Log.CallDepth})
 		if err != nil {
-			return err
+			return NewErrorWrapped("init: fail to set logger for 'tao'", err)
 		}
 	}
 
 	// print banner
-	if !t.HideBanner {
+	if !t.Banner.Hide {
 		w := GetWriter(ConfigKey)
 		if w == nil {
 			w = os.Stdout
 		}
-		_, err = w.Write([]byte(strings.TrimSpace(banner) + "\n"))
+		_, err = w.Write([]byte(strings.TrimSpace(t.Banner.Content) + "\n"))
 		if err != nil {
-			return err
+			return NewErrorWrapped("init: fail to write banner of tao", err)
 		}
 	}
 

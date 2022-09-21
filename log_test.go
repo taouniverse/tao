@@ -17,6 +17,8 @@ package tao
 import (
 	"encoding/json"
 	"github.com/stretchr/testify/assert"
+	"log"
+	"strconv"
 	"testing"
 )
 
@@ -97,6 +99,44 @@ func TestLogger(t *testing.T) {
 		err = json.Unmarshal([]byte("\"file|console\""), &l)
 		assert.Nil(t, err)
 		assert.Equal(t, Console|File, *l)
+
+		err = json.Unmarshal([]byte("\"unknown\""), &l)
+		assert.NotNil(t, err)
+	})
+
+	t.Run("LogFlagMarshal", func(t *testing.T) {
+		t.Log(LogFlag(log.LstdFlags).String())
+		t.Log(LogFlag(log.LstdFlags | log.Lshortfile).String())
+		t.Log(LogFlag(log.LstdFlags | log.Llongfile).String())
+
+		marshal, err := json.Marshal(LogFlag(log.LstdFlags))
+		assert.Nil(t, err)
+		t.Log(string(marshal))
+		assert.Equal(t, "\"std\"", string(marshal))
+
+		err = json.Unmarshal(marshal, nil)
+		assert.NotNil(t, err)
+
+		var l = new(LogFlag)
+		err = json.Unmarshal([]byte("\""+LogFlag(log.LstdFlags).String()+"\""), &l)
+		assert.Nil(t, err)
+		assert.Equal(t, LogFlag(log.LstdFlags), *l)
+
+		err = json.Unmarshal([]byte("\""+LogFlag(log.LstdFlags|log.Lshortfile).String()+"\""), &l)
+		assert.Nil(t, err)
+		assert.Equal(t, LogFlag(log.LstdFlags|log.Lshortfile), *l)
+
+		err = json.Unmarshal([]byte("\"std|short\""), &l)
+		assert.Nil(t, err)
+		assert.Equal(t, LogFlag(log.LstdFlags|log.Lshortfile), *l)
+
+		err = json.Unmarshal([]byte("\""+LogFlag(log.LstdFlags|log.Llongfile).String()+"\""), &l)
+		assert.Nil(t, err)
+		assert.Equal(t, LogFlag(log.LstdFlags|log.Llongfile), *l)
+
+		err = json.Unmarshal([]byte("\""+strconv.Itoa(log.LstdFlags|log.Llongfile)+"\""), &l)
+		assert.Nil(t, err)
+		assert.Equal(t, LogFlag(log.LstdFlags|log.Llongfile), *l)
 
 		err = json.Unmarshal([]byte("\"unknown\""), &l)
 		assert.NotNil(t, err)

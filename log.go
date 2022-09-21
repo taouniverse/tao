@@ -20,6 +20,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"strconv"
 	"sync"
 )
 
@@ -27,6 +28,7 @@ import (
 type Log struct {
 	Level     LogLevel `json:"level"`
 	Type      LogType  `json:"type"`
+	Flag      LogFlag  `json:"flag"`
 	CallDepth int      `json:"call_depth"`
 	Path      string   `json:"path,omitempty"`
 	Disable   bool     `json:"disable"`
@@ -136,6 +138,48 @@ func (l *LogType) UnmarshalText(text []byte) error {
 		*l = File | Console
 	default:
 		return fmt.Errorf("log: unrecognized LogType: %q", lower)
+	}
+	return nil
+}
+
+// LogFlag log's flag
+type LogFlag int
+
+// String for LogType Config
+func (l LogFlag) String() string {
+	switch l {
+	case log.LstdFlags:
+		return "std"
+	case log.LstdFlags | log.Lshortfile:
+		return "std|short"
+	case log.LstdFlags | log.Llongfile:
+		return "std|long"
+	default:
+		return fmt.Sprintf("tao.LogFlag(%d)", l)
+	}
+}
+
+// MarshalText instead of number
+func (l LogFlag) MarshalText() ([]byte, error) {
+	return []byte(l.String()), nil
+}
+
+// UnmarshalText to number
+func (l *LogFlag) UnmarshalText(text []byte) error {
+	switch lower := string(bytes.ToLower(text)); lower {
+	case "std":
+		*l = log.LstdFlags
+	case "std|short", "short|std":
+		*l = log.LstdFlags | log.Lshortfile
+	case "std|long", "long|std":
+		*l = log.LstdFlags | log.Llongfile
+	default:
+		// int flag
+		flag, err := strconv.Atoi(lower)
+		if err != nil {
+			return fmt.Errorf("log: unrecognized LogFlag: %q", lower)
+		}
+		*l = LogFlag(flag)
 	}
 	return nil
 }

@@ -22,7 +22,7 @@ import (
 
 func TestInit(t *testing.T) {
 	t.Run("TestBeforeInit", func(t *testing.T) {
-		err := Register("before all", func() error {
+		err := Register("before all", nil, func() error {
 			t.Log("before tao universe init")
 			return nil
 		})
@@ -38,7 +38,9 @@ func TestInit(t *testing.T) {
         "log": {
             "level": "debug"
         },
-        "hide_banner": false
+        "banner": {
+            "hide": false
+		}
     },
     "print": {
         "print": "==============  hello,tao!  ==============",
@@ -48,15 +50,14 @@ func TestInit(t *testing.T) {
 }`)
 
 	t.Run("TestSetConfigBytesAll", func(t *testing.T) {
-		err := SetConfigBytesAll(file, JSON)
+		err := SetAllConfigBytes(file, JSON)
 		assert.Nil(t, err)
 
-		err = SetConfigBytesAll(file, Yaml)
+		err = SetAllConfigBytes(file, Yaml)
 		assert.NotNil(t, err)
 
 		_, err = GetConfigBytes(printConfigKey)
 		assert.Nil(t, err)
-
 	})
 
 	t.Run("TestSetConfigPath", func(t *testing.T) {
