@@ -101,7 +101,7 @@ func Run(ctx context.Context, param Parameter) (err error) {
 // Register unit to tao universe
 func Register(configKey string, config Config, setup func() error) error {
 	rv := reflect.ValueOf(config)
-	if rv.Kind() != reflect.Pointer || rv.IsNil() {
+	if rv.Kind() != reflect.Ptr || rv.IsNil() {
 		return NewError(ParamInvalid, "tao: type of config should be pointer(notnull) instead of %+v", config)
 	}
 
