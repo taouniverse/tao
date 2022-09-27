@@ -53,6 +53,7 @@ func TestInit(t *testing.T) {
 		})
 		assert.Nil(t, err)
 
+		// there's no loggers & writers before init
 		Fatal("fatal before all")
 		Fatalf("%s before all", "fatal")
 	})

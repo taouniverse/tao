@@ -17,6 +17,7 @@ package tao
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"os/signal"
 	"reflect"
@@ -124,8 +125,9 @@ func Register(configKey string, config Config, setup func() error) error {
 				if e.Code() != ConfigNotFound {
 					return e
 				}
+				// config not found is valid
 			} else {
-				return e
+				return NewErrorWrapped(fmt.Sprintf("tao: fail to load config by key %q", configKey), err)
 			}
 		}
 
