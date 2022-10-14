@@ -81,7 +81,7 @@ func Run(ctx context.Context, param Parameter) (err error) {
 		return NewErrorWrapped("tao: fail to marshal configmap", err)
 	}
 	if configPath != "" {
-		Debugf("load config from %q\n", configPath)
+		Debugf("load config from %q", configPath)
 	}
 	Debugf("config data: \n%s", string(cm))
 
@@ -171,14 +171,14 @@ func gracefulShutdown() {
 				syscall.SIGQUIT: {},
 				syscall.SIGTERM: {},
 			}[sig]; ok {
-				Debugf("got exiting signal now: %v\n", sig)
+				Debugf("got exiting signal now: %v", sig)
 				if err := tao.Close(); err != nil {
 					os.Exit(1)
 				} else {
 					os.Exit(0)
 				}
 			} else {
-				Debugf("got non-exiting signal: %v\n", sig)
+				Debugf("got non-exiting signal: %v", sig)
 			}
 		}
 	}()
