@@ -42,7 +42,7 @@ var configMap = make(map[string]Config)
 func LoadConfig(configKey string, config Config) error {
 	c, ok := configInterfaceMap[configKey]
 	if !ok {
-		return NewError(ConfigNotFound, "config: %s not found", configKey)
+		return NewError(ConfigNotFound, "config: %q not found", configKey)
 	}
 	bytes, err := json.Marshal(c)
 	if err != nil {
@@ -50,7 +50,7 @@ func LoadConfig(configKey string, config Config) error {
 	}
 	err = json.Unmarshal(bytes, &config)
 	if err != nil {
-		return NewErrorWrapped(fmt.Sprintf("config: fail to unmarshal config bytes for '%q'", configKey), err)
+		return NewErrorWrapped(fmt.Sprintf("config: fail to unmarshal config bytes for %q", configKey), err)
 	}
 	return nil
 }
@@ -92,11 +92,11 @@ var defaultTao = &taoConfig{
 	Banner: &Banner{
 		Hide: false,
 		Content: `
-___________              
-\__    ___/____    ____  
-  |    |  \__  \  /  _ \ 
+___________
+\__    ___/____    ____
+  |    |  \__  \  /  _ \
   |    |   / __ \(  <_> )
-  |____|  (____  /\____/ 
+  |____|  (____  /\____/
                \/
 `,
 	},
