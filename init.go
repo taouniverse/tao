@@ -19,7 +19,6 @@ import (
 	"encoding/json"
 	"gopkg.in/yaml.v3"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"path"
@@ -58,7 +57,7 @@ var configPath = ""
 
 // SetConfigPath in your project's init()
 func SetConfigPath(confPath string) error {
-	data, err := ioutil.ReadFile(confPath)
+	data, err := os.ReadFile(confPath)
 	if err != nil {
 		return NewErrorWrapped("init: fail to read config file", err)
 	}

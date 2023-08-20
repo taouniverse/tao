@@ -137,9 +137,7 @@ func (e *errorTao) Unwrap() error {
 	return e.cause
 }
 
-/**
-ErrorCode
-*/
+// ErrorCode
 const (
 	Unknown         = "Unknown"
 	ParamInvalid    = "ParamInvalid"

@@ -147,8 +147,10 @@ func Register(configKey string, config Config, setup func() error) error {
 
 	switch tao.universe.State() {
 	case Running, Over, Closed:
+		// like runtime error
 		return unitSetup()
 	default:
+		// like build error
 		return tao.universe.Register(NewPipeTask(NewTask(configKey, func(ctx context.Context, param Parameter) (Parameter, error) {
 			select {
 			case <-ctx.Done():
