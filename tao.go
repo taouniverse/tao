@@ -1,4 +1,4 @@
-// Copyright 2022 huija
+// Copyright 2021-2026 huija
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -56,18 +56,15 @@ func Run(ctx context.Context, param Parameter) (err error) {
 	}
 
 	if len(once) == 0 {
-		// refer to defaultConfigs in init.go to get some help
 		return NewError(UniverseNotInit, "none of %+v existed", defaultConfigs)
 	}
 
-	// non-block check
 	select {
 	case <-ctx.Done():
 		return NewError(ContextCanceled, "tao: context has been canceled")
 	default:
 	}
 
-	// tasks register
 	for _, c := range configMap {
 		err = tao.Register(NewPipeTask(c.ToTask(), c.RunAfter()...))
 		if err != nil {
@@ -75,7 +72,6 @@ func Run(ctx context.Context, param Parameter) (err error) {
 		}
 	}
 
-	// debug print
 	cm, err := json.MarshalIndent(configMap, "", "  ")
 	if err != nil {
 		return NewErrorWrapped("tao: fail to marshal configmap", err)
@@ -85,78 +81,108 @@ func Run(ctx context.Context, param Parameter) (err error) {
 	}
 	Debugf("config data: \n%s", string(cm))
 
-	// graceful shutdown
 	gracefulShutdown()
 
-	// tao run
 	err = tao.Run(ctx, param)
 	if err != nil {
 		return NewErrorWrapped("tao: fail to run", err)
 	}
 
-	// tao wait
 	tao.Wait()
 	return
 }
 
-// Register unit to tao universe
-func Register(configKey string, config Config, setup func() error) error {
-	rv := reflect.ValueOf(config)
-	if rv.Kind() != reflect.Ptr || rv.IsNil() {
-		return NewError(ParamInvalid, "tao: type of config should be pointer(notnull) instead of %+v", config)
+// Register unit to tao universe.
+//
+// Generic factory pattern registration with MultiConfig:
+//   - Parses multi-instance config (single-instance config is auto-wrapped as {default: config})
+//   - Calls constructor for each instance
+func Register[T any, C any](
+	configKey string,
+	config MultiConfig[C],
+	constructor func(name string, cfg C) (T, func() error, error),
+) (*BaseFactory[T], error) {
+	if constructor == nil {
+		return nil, NewError(ParamInvalid, "tao: constructor is nil")
 	}
 
-	unitSetup := func() (err error) {
-		defer func() {
-			if err != nil {
-				return
-			}
+	rv := reflect.ValueOf(config)
+	if rv.Kind() != reflect.Ptr || rv.IsNil() {
+		return nil, NewError(ParamInvalid, "tao: type of config should be pointer(notnull) instead of %+v", config)
+	}
 
-			// 3. setup unit
-			if setup != nil {
-				err = setup()
-			}
-		}()
+	factory := NewBaseFactory[T]()
 
-		// 1. load config
-		err = LoadConfig(configKey, config)
+	setup := func() error {
+		err := LoadConfig(configKey, config)
 		if err != nil {
-			if e, ok := err.(ErrorTao); ok {
-				if e.Code() != ConfigNotFound {
-					return e
-				}
-				// config not found is valid
+			if e, ok := err.(ErrorTao); ok && e.Code() == ConfigNotFound {
 			} else {
 				return NewErrorWrapped(fmt.Sprintf("tao: fail to load config by key %q", configKey), err)
 			}
 		}
 
-		// 2. set object to tao after valid self
+		if err := parseMultiConfig(configKey, config); err != nil {
+			return err
+		}
+
 		config.ValidSelf()
+
+		instances := config.GetInstances()
+		if len(instances) == 0 {
+			var zeroC C
+			config.SetInstances(map[string]C{DefaultInstanceKey: zeroC})
+			config.ValidSelf()
+			instances = config.GetInstances()
+		}
+
+		var createdInstances []string
+		for name, instanceConfig := range instances {
+			instance, closer, err := constructor(name, instanceConfig)
+			if err != nil {
+				for _, createdName := range createdInstances {
+					factory.Close(createdName)
+				}
+				return NewErrorWrapped(fmt.Sprintf("factory: failed to create instance %q", name), err)
+			}
+			if err := factory.RegisterWithCloser(name, instance, closer); err != nil {
+				for _, createdName := range createdInstances {
+					factory.Close(createdName)
+				}
+				return err
+			}
+			createdInstances = append(createdInstances, name)
+		}
+
 		return SetConfig(configKey, config)
 	}
 
+	if err := registerToUniverse(configKey, config, setup); err != nil {
+		return nil, err
+	}
+
+	return factory, nil
+}
+
+func registerToUniverse(configKey string, config Config, setup func() error) error {
 	if config != nil && configKey != config.Name() {
 		return NewError(ParamInvalid, "universe: config's name should be same as task's name")
 	}
 
 	if configKey == ConfigKey {
-		// tao init
-		return unitSetup()
+		return setup()
 	}
 
 	switch tao.universe.State() {
 	case Running, Over, Closed:
-		// like runtime error
-		return unitSetup()
+		return setup()
 	default:
-		// like build error
 		return tao.universe.Register(NewPipeTask(NewTask(configKey, func(ctx context.Context, param Parameter) (Parameter, error) {
 			select {
 			case <-ctx.Done():
 				return param, NewError(ContextCanceled, "universe: fail to init %q", configKey)
 			default:
-				return param, unitSetup()
+				return param, setup()
 			}
 		})))
 	}
@@ -164,23 +190,14 @@ func Register(configKey string, config Config, setup func() error) error {
 
 func gracefulShutdown() {
 	sc := make(chan os.Signal, 1)
-	signal.Notify(sc)
+	signal.Notify(sc, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
 	go func() {
-		for {
-			sig := <-sc
-			if _, ok := map[os.Signal]struct{}{
-				syscall.SIGINT:  {},
-				syscall.SIGQUIT: {},
-				syscall.SIGTERM: {},
-			}[sig]; ok {
-				Debugf("got exiting signal now: %v", sig)
-				if err := tao.Close(); err != nil {
-					os.Exit(1)
-				} else {
-					os.Exit(0)
-				}
+		for sig := range sc {
+			Debugf("got exiting signal now: %v", sig)
+			if err := tao.Close(); err != nil {
+				os.Exit(1)
 			} else {
-				Debugf("got non-exiting signal: %v", sig)
+				os.Exit(0)
 			}
 		}
 	}()

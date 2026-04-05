@@ -1,4 +1,4 @@
-// Copyright 2021 huija
+// Copyright 2021-2026 huija
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -221,7 +221,7 @@ var levelPrefix = map[LogLevel]string{
 
 // Debug logs info in debug level
 func (l *logger) Debug(v ...interface{}) {
-	if t.Log.Level > DEBUG {
+	if defaultInst().Log.Level > DEBUG {
 		return
 	}
 	_ = l.Output(l.calldepth, levelPrefix[DEBUG]+fmt.Sprintln(v...))
@@ -229,7 +229,7 @@ func (l *logger) Debug(v ...interface{}) {
 
 // Debugf logs info in debug level
 func (l *logger) Debugf(format string, v ...interface{}) {
-	if t.Log.Level > DEBUG {
+	if defaultInst().Log.Level > DEBUG {
 		return
 	}
 	_ = l.Output(l.calldepth, levelPrefix[DEBUG]+fmt.Sprintf(format, v...))
@@ -237,7 +237,7 @@ func (l *logger) Debugf(format string, v ...interface{}) {
 
 // Info logs info in info level
 func (l *logger) Info(v ...interface{}) {
-	if t.Log.Level > INFO {
+	if defaultInst().Log.Level > INFO {
 		return
 	}
 	_ = l.Output(l.calldepth, levelPrefix[INFO]+fmt.Sprintln(v...))
@@ -245,7 +245,7 @@ func (l *logger) Info(v ...interface{}) {
 
 // Infof logs info in info level
 func (l *logger) Infof(format string, v ...interface{}) {
-	if t.Log.Level > INFO {
+	if defaultInst().Log.Level > INFO {
 		return
 	}
 	_ = l.Output(l.calldepth, levelPrefix[INFO]+fmt.Sprintf(format, v...))
@@ -253,7 +253,7 @@ func (l *logger) Infof(format string, v ...interface{}) {
 
 // Warn logs info in warn level
 func (l *logger) Warn(v ...interface{}) {
-	if t.Log.Level > WARNING {
+	if defaultInst().Log.Level > WARNING {
 		return
 	}
 	_ = l.Output(l.calldepth, levelPrefix[WARNING]+fmt.Sprintln(v...))
@@ -261,7 +261,7 @@ func (l *logger) Warn(v ...interface{}) {
 
 // Warnf logs info in warn level
 func (l *logger) Warnf(format string, v ...interface{}) {
-	if t.Log.Level > WARNING {
+	if defaultInst().Log.Level > WARNING {
 		return
 	}
 	_ = l.Output(l.calldepth, levelPrefix[WARNING]+fmt.Sprintf(format, v...))
@@ -269,7 +269,7 @@ func (l *logger) Warnf(format string, v ...interface{}) {
 
 // Error logs info in error level
 func (l *logger) Error(v ...interface{}) {
-	if t.Log.Level > ERROR {
+	if defaultInst().Log.Level > ERROR {
 		return
 	}
 	_ = l.Output(l.calldepth, levelPrefix[ERROR]+fmt.Sprintln(v...))
@@ -277,7 +277,7 @@ func (l *logger) Error(v ...interface{}) {
 
 // Errorf logs info in error level
 func (l *logger) Errorf(format string, v ...interface{}) {
-	if t.Log.Level > ERROR {
+	if defaultInst().Log.Level > ERROR {
 		return
 	}
 	_ = l.Output(l.calldepth, levelPrefix[ERROR]+fmt.Sprintf(format, v...))
@@ -285,7 +285,7 @@ func (l *logger) Errorf(format string, v ...interface{}) {
 
 // Panic logs info in panic level
 func (l *logger) Panic(v ...interface{}) {
-	if t.Log.Level > PANIC {
+	if defaultInst().Log.Level > PANIC {
 		return
 	}
 	s := levelPrefix[PANIC] + fmt.Sprintln(v...)
@@ -295,7 +295,7 @@ func (l *logger) Panic(v ...interface{}) {
 
 // Panicf logs info in panic level
 func (l *logger) Panicf(format string, v ...interface{}) {
-	if t.Log.Level > PANIC {
+	if defaultInst().Log.Level > PANIC {
 		return
 	}
 	s := levelPrefix[PANIC] + fmt.Sprintf(format, v...)
@@ -305,7 +305,7 @@ func (l *logger) Panicf(format string, v ...interface{}) {
 
 // Fatal logs info in fatal level
 func (l *logger) Fatal(v ...interface{}) {
-	if t.Log.Level > FATAL {
+	if defaultInst().Log.Level > FATAL {
 		return
 	}
 	_ = l.Output(l.calldepth, levelPrefix[FATAL]+fmt.Sprintln(v...))
@@ -314,7 +314,7 @@ func (l *logger) Fatal(v ...interface{}) {
 
 // Fatalf logs info in fatal level
 func (l *logger) Fatalf(format string, v ...interface{}) {
-	if t.Log.Level > FATAL {
+	if defaultInst().Log.Level > FATAL {
 		return
 	}
 	_ = l.Output(l.calldepth, levelPrefix[FATAL]+fmt.Sprintf(format, v...))
@@ -335,7 +335,10 @@ type taoLogger struct {
 }
 
 // globalLogger which default to provide based log print
-var globalLogger = new(taoLogger)
+var globalLogger = &taoLogger{
+	loggers: make(map[string]Logger),
+	writers: make(map[string]io.Writer),
+}
 
 // GetWriter in tao
 func GetWriter(configKey string) io.Writer {
@@ -346,10 +349,6 @@ func GetWriter(configKey string) io.Writer {
 func SetWriter(configKey string, w io.Writer) error {
 	globalLogger.mu.Lock()
 	defer globalLogger.mu.Unlock()
-
-	if globalLogger.writers == nil {
-		globalLogger.writers = make(map[string]io.Writer)
-	}
 
 	if _, ok := globalLogger.writers[configKey]; ok {
 		return NewError(DuplicateCall, "log: %s's writer has been set before", configKey)
@@ -386,10 +385,6 @@ func GetLogger(configKey string) Logger {
 func SetLogger(configKey string, logger Logger) error {
 	globalLogger.mu.Lock()
 	defer globalLogger.mu.Unlock()
-
-	if globalLogger.loggers == nil {
-		globalLogger.loggers = make(map[string]Logger)
-	}
 
 	if _, ok := globalLogger.loggers[configKey]; ok {
 		return NewError(DuplicateCall, "log: %s's logger has been set before", configKey)

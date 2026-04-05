@@ -1,4 +1,4 @@
-// Copyright 2022 huija
+// Copyright 2021-2026 huija
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,24 +16,25 @@ package tao
 
 import (
 	"context"
-	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 const preConfigKey = "preAll"
 
+type preConfigInstance struct{}
+
 type preConfig struct {
+	BaseMultiConfig[preConfigInstance]
 }
 
-// Name of Config
 func (p *preConfig) Name() string {
 	return preConfigKey
 }
 
-func (p *preConfig) ValidSelf() {
-	return
-}
+func (p *preConfig) ValidSelf() {}
 
 func (p *preConfig) ToTask() Task {
 	return NewTask(preConfigKey, func(ctx context.Context, param Parameter) (Parameter, error) {
@@ -47,13 +48,12 @@ func (p *preConfig) RunAfter() []string {
 
 func TestInit(t *testing.T) {
 	t.Run("TestBeforeInit", func(t *testing.T) {
-		err := Register(preConfigKey, new(preConfig), func() error {
+		_, err := Register(preConfigKey, &preConfig{}, func(name string, cfg preConfigInstance) (struct{}, func() error, error) {
 			t.Log("before tao universe init")
-			return nil
+			return struct{}{}, nil, nil
 		})
 		assert.Nil(t, err)
 
-		// there's no loggers & writers before init
 		Fatal("fatal before all")
 		Fatalf("%s before all", "fatal")
 	})

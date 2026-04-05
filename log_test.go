@@ -1,4 +1,4 @@
-// Copyright 2021 huija
+// Copyright 2021-2026 huija
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,10 +16,11 @@ package tao
 
 import (
 	"encoding/json"
-	"github.com/stretchr/testify/assert"
 	"log"
 	"strconv"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestLogger(t *testing.T) {
@@ -37,7 +38,8 @@ func TestLogger(t *testing.T) {
 		t.Log(string(marshal))
 		assert.Equal(t, "\"debug\"", string(marshal))
 
-		err = json.Unmarshal(marshal, nil)
+		var invalid int
+		err = json.Unmarshal(marshal, &invalid)
 		assert.NotNil(t, err)
 
 		var l = new(LogLevel)
@@ -80,7 +82,8 @@ func TestLogger(t *testing.T) {
 		t.Log(string(marshal))
 		assert.Equal(t, "\"console\"", string(marshal))
 
-		err = json.Unmarshal(marshal, nil)
+		var invalid int
+		err = json.Unmarshal(marshal, &invalid)
 		assert.NotNil(t, err)
 
 		var l = new(LogType)
@@ -114,7 +117,8 @@ func TestLogger(t *testing.T) {
 		t.Log(string(marshal))
 		assert.Equal(t, "\"std\"", string(marshal))
 
-		err = json.Unmarshal(marshal, nil)
+		var invalid int
+		err = json.Unmarshal(marshal, &invalid)
 		assert.NotNil(t, err)
 
 		var l = new(LogFlag)

@@ -1,4 +1,4 @@
-// Copyright 2021 huija
+// Copyright 2021-2026 huija
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -106,7 +106,7 @@ func (t *task) Run(ctx context.Context, param Parameter) (err error) {
 	}
 
 	if t.state != Runnable {
-		return NewError(TaskRunTwice, "task: Run called twice for task "+t.name)
+		return NewError(TaskRunTwice, "task: Run called twice for task %s", t.name)
 	}
 
 	select {
@@ -117,7 +117,6 @@ func (t *task) Run(ctx context.Context, param Parameter) (err error) {
 
 	t.state = Running
 	defer func() {
-		// SPECIAL: result should be cloned param because it's just for this task
 		t.result = param.Clone()
 		t.err = err
 		t.state = Over

@@ -1,4 +1,4 @@
-// Copyright 2021 huija
+// Copyright 2021-2026 huija
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -45,6 +45,15 @@ func TestNewParameter(t *testing.T) {
 		param1 := NewParameter()
 		param1.Set("p", parameter)
 		t.Log(param1.String())
+		assert.NotEmpty(t, param1.String())
+	})
+
+	t.Run("TestParam_String_Empty", func(t *testing.T) {
+		// Test String() with values that can't be marshaled
+		param3 := NewParameter()
+		param3.Set("key", make(chan int)) // channels can't be JSON marshaled
+		result := param3.String()
+		assert.Equal(t, "", result)
 	})
 
 	t.Run("TestParam_Clone", func(t *testing.T) {

@@ -1,4 +1,4 @@
-// Copyright 2022 huija
+// Copyright 2021-2026 huija
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,13 +17,14 @@ package tao
 import (
 	"context"
 	"encoding/json"
-	"gopkg.in/yaml.v3"
 	"io"
 	"log"
 	"os"
 	"path"
 	"strings"
 	"time"
+
+	"gopkg.in/yaml.v3"
 )
 
 // ConfigType of config file
@@ -49,7 +50,10 @@ var defaultConfigs = []string{
 
 func init() {
 	for _, confPath := range defaultConfigs {
-		_ = SetConfigPath(confPath)
+		if err := SetConfigPath(confPath); err == nil {
+			// config loaded successfully, stop trying
+			break
+		}
 	}
 }
 
@@ -79,10 +83,6 @@ func SetConfigPath(confPath string) error {
 
 // DevelopMode called to enable default configs for all
 func DevelopMode() error {
-	if len(once) != 0 {
-		return NewError(DuplicateCall, "tao: init twice")
-	}
-
 	return SetAllConfigBytes(nil, None)
 }
 
@@ -101,31 +101,42 @@ func SetAllConfigBytes(data []byte, configType ConfigType) (err error) {
 		default:
 		}
 		if err == nil {
-			// init tao with config
-			err = Register(ConfigKey, t, taoInit)
+			_, err = Register(ConfigKey, cfg, func(name string, cfg taoInstanceConfig) (struct{}, func() error, error) {
+				return struct{}{}, nil, taoInit()
+			})
 		}
 	default:
-		// caused by duplicate config(file & code)
 		err = NewError(DuplicateCall, "config: SetConfigBytes has been called before")
 	}
 	return
 }
 
-// t global config of tao
-var t = new(taoConfig)
+// only one instance config
+var cfg = &taoConfig{}
+
+func defaultInst() *taoInstanceConfig {
+	if inst, ok := cfg.Instances[cfg.GetDefaultInstanceName()]; ok {
+		return &inst
+	}
+	return nil
+}
 
 // taoInit can only be called once before tao.Run
 func taoInit() (err error) {
+	inst := defaultInst()
+	if inst == nil {
+		return NewError(ParamInvalid, "tao: default instance config is nil")
+	}
 	// SetLogger
-	if !t.Log.Disable {
+	if !inst.Log.Disable {
 		writers := make([]io.Writer, 0)
 
-		if t.Log.Type&Console != 0 {
+		if inst.Log.Type&Console != 0 {
 			writers = append(writers, os.Stdout)
 		}
 
-		if t.Log.Type&File != 0 {
-			file, err := os.OpenFile(t.Log.Path, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+		if inst.Log.Type&File != 0 {
+			file, err := os.OpenFile(inst.Log.Path, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 			if err != nil {
 				return NewErrorWrapped("init: fail to open log file", err)
 			}
@@ -138,19 +149,19 @@ func taoInit() (err error) {
 			return NewErrorWrapped("init: fail to set writer for 'tao'", err)
 		}
 
-		err = SetLogger(ConfigKey, &logger{Logger: log.New(writer, "", int(t.Log.Flag)), calldepth: t.Log.CallDepth})
+		err = SetLogger(ConfigKey, &logger{Logger: log.New(writer, "", int(inst.Log.Flag)), calldepth: inst.Log.CallDepth})
 		if err != nil {
 			return NewErrorWrapped("init: fail to set logger for 'tao'", err)
 		}
 	}
 
 	// print banner
-	if !t.Banner.Hide {
+	if !inst.Banner.Hide {
 		w := GetWriter(ConfigKey)
 		if w == nil {
 			w = os.Stdout
 		}
-		_, err = w.Write([]byte(strings.TrimSpace(t.Banner.Content) + "\n"))
+		_, err = w.Write([]byte(strings.TrimSpace(inst.Banner.Content) + "\n"))
 		if err != nil {
 			return NewErrorWrapped("init: fail to write banner of tao", err)
 		}
@@ -160,12 +171,15 @@ func taoInit() (err error) {
 	return universeInit()
 }
 
+// UniverseInitTimeout is the timeout for universe initialization.
+// Default is 1 minute. Can be changed before calling tao.Run().
+var UniverseInitTimeout = time.Minute
+
 func universeInit() error {
 	if tao.universe.State() != Runnable {
 		return NewError(TaskRunTwice, "universe: init twice")
 	}
-	// universe run
-	timeout, cancel := context.WithTimeout(context.Background(), time.Minute)
+	timeout, cancel := context.WithTimeout(context.Background(), UniverseInitTimeout)
 	defer cancel()
 	return tao.universe.Run(timeout, nil)
 }

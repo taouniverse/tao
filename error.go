@@ -1,4 +1,4 @@
-// Copyright 2021 huija
+// Copyright 2021-2026 huija
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -139,14 +139,16 @@ func (e *errorTao) Unwrap() error {
 
 // ErrorCode
 const (
-	Unknown         = "Unknown"
-	ParamInvalid    = "ParamInvalid"
-	ContextCanceled = "ContextCanceled"
-	DuplicateCall   = "DuplicateCall"
-	TaskRunTwice    = "TaskRunTwice"
-	TaskCloseTwice  = "TaskCloseTwice"
-	TaskClosed      = "TaskClosed"
-	TaskRunning     = "TaskRunning"
-	ConfigNotFound  = "ConfigNotFound"
-	UniverseNotInit = "UniverseNotInit"
+	Unknown            = "Unknown"
+	ParamInvalid       = "ParamInvalid"
+	ContextCanceled    = "ContextCanceled"
+	DuplicateCall      = "DuplicateCall"
+	TaskRunError       = "TaskRunError"
+	TaskRunTwice       = "TaskRunTwice"
+	TaskCloseTwice     = "TaskCloseTwice"
+	TaskClosed         = "TaskClosed"
+	TaskRunning        = "TaskRunning"
+	ConfigNotFound     = "ConfigNotFound"
+	UniverseNotInit    = "UniverseNotInit"
+	InstancesNotClosed = "InstancesNotClosed"
 )
