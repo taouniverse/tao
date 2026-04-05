@@ -141,13 +141,13 @@ func Register[T any, C any](
 			instance, closer, err := constructor(name, instanceConfig)
 			if err != nil {
 				for _, createdName := range createdInstances {
-					factory.Close(createdName)
+					_ = factory.Close(createdName)
 				}
 				return NewErrorWrapped(fmt.Sprintf("factory: failed to create instance %q", name), err)
 			}
 			if err := factory.RegisterWithCloser(name, instance, closer); err != nil {
 				for _, createdName := range createdInstances {
-					factory.Close(createdName)
+					_ = factory.Close(createdName)
 				}
 				return err
 			}
