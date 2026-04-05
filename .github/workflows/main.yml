@@ -1,40 +1,37 @@
 name: MainTest
+
 on:
   push:
-    branchs:
-      - main
-    branches-ignore:
-      - dev
+    branches: [main]
   pull_request:
-    branches:
-    branches-ignore:
-      - main
-      - dev
+    branches: [main]
 
 jobs:
   test:
-    name: Lint-UT
+    name: Lint & Test
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Set up Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v5
         with:
-          go-version: 1.17
+          go-version: "1.24"
 
-      - name: Check out code
-        uses: actions/checkout@v2
+      - name: Lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          args: --timeout=5m
 
-      - name: Lint Go Code
-        run: |
-          go install golang.org/x/lint/golint@latest
-          golint -set_exit_status $(go list ./... | grep -v vendor)
-
-      - name: Run Unit tests.
+      - name: Run tests
         run: |
           chmod +x test.sh
           ./test.sh
 
-      - name: Upload Coverage report to CodeCov
-        uses: codecov/codecov-action@v2
+      - name: Upload Coverage
+        uses: codecov/codecov-action@v4
         with:
           file: ./coverage.txt
+          fail_ci_if_error: false

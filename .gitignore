@@ -8,13 +8,24 @@
 # Test binary, built with `go test -c`
 *.test
 
-# Output of the go coverage tool, specifically when used with LiteIDE
+# Output of the go coverage tool
 *.out
 coverage.html
 coverage.txt
 
-# Dependency directories (remove the comment below to include it)
+# Dependency directory (uncomment if needed)
 # vendor/
 
-# others
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Log files
 *.log

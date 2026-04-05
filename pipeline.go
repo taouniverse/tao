@@ -1,4 +1,4 @@
-// Copyright 2021 huija
+// Copyright 2021-2026 huija
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -44,8 +44,9 @@ var _ Pipeline = (*pipeline)(nil)
 
 // pipeline implement of Pipeline
 type pipeline struct {
-	wg sync.WaitGroup
-	mu sync.RWMutex
+	wg    sync.WaitGroup
+	mu    sync.RWMutex
+	errMu sync.Mutex
 
 	name string
 
@@ -131,7 +132,7 @@ func (p *pipeline) Run(ctx context.Context, param Parameter) error {
 	}
 
 	if p.state != Runnable {
-		return NewError(TaskRunTwice, "pipeline: Run called twice for pipeline "+p.name)
+		return NewError(TaskRunTwice, "pipeline: Run called twice for pipeline %s", p.name)
 	}
 
 	select {
@@ -188,11 +189,7 @@ func (p *pipeline) taskRun(ctx context.Context, task *PipeTask, param Parameter,
 	// run & wrap cause
 	err = task.Run(ctx, param)
 	if err != nil {
-		if p.err == nil {
-			p.err = NewError(Unknown, err.Error())
-		} else {
-			p.err.Wrap(err)
-		}
+		p.wrapError(err)
 	}
 
 	// result
@@ -200,6 +197,16 @@ func (p *pipeline) taskRun(ctx context.Context, task *PipeTask, param Parameter,
 	if async {
 		// signal
 		close(p.signals[task.Name()])
+	}
+}
+
+func (p *pipeline) wrapError(err error) {
+	p.errMu.Lock()
+	defer p.errMu.Unlock()
+	if p.err == nil {
+		p.err = NewError(TaskRunError, "%s", err.Error())
+	} else {
+		p.err.Wrap(err)
 	}
 }
 

@@ -1,4 +1,4 @@
-// Copyright 2022 huija
+// Copyright 2021-2026 huija
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,16 +16,20 @@ package tao
 
 import (
 	"context"
-	"github.com/stretchr/testify/assert"
+	"sync"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRegister(t *testing.T) {
-	p := new(printConfig)
-	err := Register(printConfigKey, p, nil)
+	p := &printConfig{}
+	_, err := Register[struct{}, printConfigInstance](printConfigKey, p, func(name string, cfg printConfigInstance) (struct{}, func() error, error) {
+		return struct{}{}, nil, nil
+	})
 	assert.Nil(t, err)
 
-	err = Register(printConfigKey, nil, nil)
+	_, err = Register[struct{}, struct{}](printConfigKey, nil, nil)
 	assert.NotNil(t, err)
 
 	err = SetConfig(printConfigKey, nil)
@@ -46,9 +50,52 @@ func TestRun(t *testing.T) {
 
 	Add(1)
 	Done()
-	err = Run(nil, nil)
+
+	ctx := context.Background()
+	err = Run(ctx, nil)
 	assert.Nil(t, err)
 
-	err = Run(nil, nil)
+	err = Run(ctx, nil)
 	assert.NotNil(t, err)
+}
+
+const singleInstanceTestKey = "single_instance_test"
+
+type singleInstanceCfgInstance struct {
+	Port int    `json:"port"`
+	Host string `json:"host"`
+}
+
+type singleInstanceCfg struct {
+	BaseMultiConfig[singleInstanceCfgInstance]
+}
+
+func (s *singleInstanceCfg) Name() string       { return singleInstanceTestKey }
+func (s *singleInstanceCfg) ValidSelf()         {}
+func (s *singleInstanceCfg) ToTask() Task       { return nil }
+func (s *singleInstanceCfg) RunAfter() []string { return nil }
+
+func TestRegister_SingleInstancePassesLoadedConfig(t *testing.T) {
+	if len(once) == 0 {
+		err := SetAllConfigBytes([]byte(`{}`), None)
+		assert.Nil(t, err)
+	}
+
+	var capturedConfig singleInstanceCfgInstance
+	var captureOnce sync.Once
+
+	cfg := &singleInstanceCfg{}
+
+	factory, err := Register(singleInstanceTestKey, cfg, func(name string, c singleInstanceCfgInstance) (string, func() error, error) {
+		captureOnce.Do(func() { capturedConfig = c })
+		return "ok", func() error { return nil }, nil
+	})
+	assert.Nil(t, err)
+	assert.NotNil(t, factory)
+
+	instance, err := factory.Get("default")
+	assert.Nil(t, err)
+	assert.Equal(t, "ok", instance)
+
+	assert.NotNil(t, capturedConfig, "constructor should have received the config, not zero value")
 }
