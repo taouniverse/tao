@@ -72,10 +72,10 @@ type MyConfig struct {
     tao.BaseMultiConfig[MyInstanceConfig]
 }
 
-func (c *MyConfig) Name() string        { return "myapp" }
-func (c *MyConfig) ValidSelf()          {}
-func (c *MyConfig) ToTask() tao.Task     { return nil }
-func (c *MyConfig) RunAfter() []string   { return nil }
+func (c *MyConfig) Name() string      { return "myapp" }
+func (c *MyConfig) ValidSelf()        {}
+func (c *MyConfig) ToTask() tao.Task  { return nil }
+func (c *MyConfig) RunAfter() []string { return nil }
 
 var Factory *tao.BaseFactory[string]
 
@@ -141,8 +141,8 @@ factory.CloseAll()
 ```go
 type MultiConfig[C any] interface {
     tao.Config
-    GetInstances() map[string]C
-    SetInstances(instances map[string]C)
+    GetInstances() []Instance[C]
+    SetInstances(instances []Instance[C])
     GetDefaultInstanceName() string
 }
 ```
@@ -155,6 +155,17 @@ type Config struct {
     RunAfters []string `json:"run_after,omitempty"`
 }
 ```
+
+Instances are stored as an ordered slice to preserve creation order:
+
+```go
+type Instance[C any] struct {
+    Name string
+    Cfg  C
+}
+```
+
+Use `GetInstanceByName(name string) (C, bool)` to look up a specific instance by name.
 
 ### Task
 
