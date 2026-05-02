@@ -144,7 +144,8 @@ func (t *taoConfig) Name() string {
 
 // ValidSelf with some default values
 func (t *taoConfig) ValidSelf() {
-	for name, inst := range t.Instances {
+	for i := range t.Instances {
+		inst := &t.Instances[i].Cfg
 		if inst.Log == nil {
 			inst.Log = defaultTaoInstance.Log
 		} else {
@@ -173,7 +174,6 @@ func (t *taoConfig) ValidSelf() {
 				inst.Banner.Content = defaultTaoInstance.Banner.Content
 			}
 		}
-		t.Instances[name] = inst
 	}
 }
 
@@ -187,29 +187,46 @@ func (t *taoConfig) RunAfter() []string {
 	return nil
 }
 
+// Instance 表示一个有序实例条目
+type Instance[C any] struct {
+	Name string
+	Cfg  C
+}
+
 // MultiConfig 支持多实例的配置接口
 type MultiConfig[C any] interface {
 	Config
-	GetInstances() map[string]C
-	SetInstances(instances map[string]C)
+	GetInstances() []Instance[C]
+	SetInstances(instances []Instance[C])
 	GetDefaultInstanceName() string
 	SetDefaultInstanceName(name string)
 }
 
 // BaseMultiConfig 多实例配置基础实现
 type BaseMultiConfig[C any] struct {
-	Instances map[string]C `json:"-" yaml:"-"`
-	Default   string       `json:"default_instance" yaml:"default_instance"`
+	Instances []Instance[C] `json:"-" yaml:"-"`
+	Default   string        `json:"default_instance" yaml:"default_instance"`
 }
 
-// GetInstances returns the map of instances
-func (b *BaseMultiConfig[C]) GetInstances() map[string]C {
+// GetInstances returns the instances slice
+func (b *BaseMultiConfig[C]) GetInstances() []Instance[C] {
 	return b.Instances
 }
 
-// SetInstances sets the map of instances
-func (b *BaseMultiConfig[C]) SetInstances(instances map[string]C) {
+// SetInstances sets the instances slice
+func (b *BaseMultiConfig[C]) SetInstances(instances []Instance[C]) {
 	b.Instances = instances
+}
+
+// GetInstanceByName returns the instance config by name
+func (b *BaseMultiConfig[C]) GetInstanceByName(name string) (C, bool) {
+	var zeroC C
+	for _, inst := range b.Instances {
+		if inst.Name == name {
+			return inst.Cfg, true
+		}
+	}
+	return zeroC, false
 }
 
 // GetDefaultInstanceName returns the default instance name
@@ -235,14 +252,14 @@ func (b *BaseMultiConfig[C]) MarshalJSON() ([]byte, error) {
 	}
 
 	if len(b.Instances) == 1 {
-		if single, ok := b.Instances[DefaultInstanceKey]; ok {
-			return json.Marshal(single)
+		if b.Instances[0].Name == DefaultInstanceKey {
+			return json.Marshal(b.Instances[0].Cfg)
 		}
 	}
 
 	result := make(map[string]interface{}, len(b.Instances)+1)
-	for name, inst := range b.Instances {
-		result[name] = inst
+	for _, inst := range b.Instances {
+		result[inst.Name] = inst.Cfg
 	}
 	if b.Default != "" {
 		result["default_instance"] = b.Default
@@ -268,7 +285,7 @@ func parseMultiConfig[C any](configKey string, config MultiConfig[C]) error {
 		if err := decodeMapToStruct(rawConfig, &single); err != nil {
 			return NewErrorWrapped("factory: fail to decode single config", err)
 		}
-		config.SetInstances(map[string]C{DefaultInstanceKey: single})
+		config.SetInstances([]Instance[C]{{Name: DefaultInstanceKey, Cfg: single}})
 		return nil
 	}
 
@@ -277,11 +294,11 @@ func parseMultiConfig[C any](configKey string, config MultiConfig[C]) error {
 		if err := decodeMapToStruct(rawMap, &single); err != nil {
 			return NewErrorWrapped("factory: fail to decode single config", err)
 		}
-		config.SetInstances(map[string]C{DefaultInstanceKey: single})
+		config.SetInstances([]Instance[C]{{Name: DefaultInstanceKey, Cfg: single}})
 		return nil
 	}
 
-	instances := make(map[string]C)
+	var instances []Instance[C]
 	for name, v := range rawMap {
 		if reservedFields[name] {
 			continue
@@ -291,12 +308,12 @@ func parseMultiConfig[C any](configKey string, config MultiConfig[C]) error {
 		if err := decodeMapToStruct(v, &instance); err != nil {
 			return NewErrorWrapped(fmt.Sprintf("factory: fail to decode instance %q", name), err)
 		}
-		instances[name] = instance
+		instances = append(instances, Instance[C]{Name: name, Cfg: instance})
 	}
 
 	if len(instances) == 0 {
 		var zeroC C
-		config.SetInstances(map[string]C{DefaultInstanceKey: zeroC})
+		config.SetInstances([]Instance[C]{{Name: DefaultInstanceKey, Cfg: zeroC}})
 		return nil
 	}
 
@@ -305,7 +322,14 @@ func parseMultiConfig[C any](configKey string, config MultiConfig[C]) error {
 	// Parse and validate default_instance
 	if defaultVal, ok := rawMap["default_instance"]; ok {
 		if defaultStr, ok := defaultVal.(string); ok && defaultStr != "" {
-			if _, ok := instances[defaultStr]; !ok {
+			found := false
+			for _, inst := range instances {
+				if inst.Name == defaultStr {
+					found = true
+					break
+				}
+			}
+			if !found {
 				return NewError(ParamInvalid, "factory: default_instance %q not found in instances", defaultStr)
 			}
 			config.SetDefaultInstanceName(defaultStr)

@@ -107,7 +107,7 @@ func Register[T any, C any](
 	}
 
 	rv := reflect.ValueOf(config)
-	if rv.Kind() != reflect.Ptr || rv.IsNil() {
+	if rv.Kind() != reflect.Pointer || rv.IsNil() {
 		return nil, NewError(ParamInvalid, "tao: type of config should be pointer(notnull) instead of %+v", config)
 	}
 
@@ -131,27 +131,27 @@ func Register[T any, C any](
 		instances := config.GetInstances()
 		if len(instances) == 0 {
 			var zeroC C
-			config.SetInstances(map[string]C{DefaultInstanceKey: zeroC})
+			config.SetInstances([]Instance[C]{{Name: DefaultInstanceKey, Cfg: zeroC}})
 			config.ValidSelf()
 			instances = config.GetInstances()
 		}
 
 		var createdInstances []string
-		for name, instanceConfig := range instances {
-			instance, closer, err := constructor(name, instanceConfig)
+		for _, inst := range instances {
+			instance, closer, err := constructor(inst.Name, inst.Cfg)
 			if err != nil {
 				for _, createdName := range createdInstances {
-					factory.Close(createdName)
+					_ = factory.Close(createdName)
 				}
-				return NewErrorWrapped(fmt.Sprintf("factory: failed to create instance %q", name), err)
+				return NewErrorWrapped(fmt.Sprintf("factory: failed to create instance %q", inst.Name), err)
 			}
-			if err := factory.RegisterWithCloser(name, instance, closer); err != nil {
+			if err := factory.RegisterWithCloser(inst.Name, instance, closer); err != nil {
 				for _, createdName := range createdInstances {
-					factory.Close(createdName)
+					_ = factory.Close(createdName)
 				}
 				return err
 			}
-			createdInstances = append(createdInstances, name)
+			createdInstances = append(createdInstances, inst.Name)
 		}
 
 		return SetConfig(configKey, config)

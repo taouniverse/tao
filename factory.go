@@ -33,6 +33,7 @@ type BaseFactory[T any] struct {
 	mu        sync.RWMutex
 }
 
+// NewBaseFactory creates a new BaseFactory instance
 func NewBaseFactory[T any]() *BaseFactory[T] {
 	return &BaseFactory[T]{
 		closers: make(map[string]func() error),

@@ -115,8 +115,10 @@ func SetAllConfigBytes(data []byte, configType ConfigType) (err error) {
 var cfg = &taoConfig{}
 
 func defaultInst() *taoInstanceConfig {
-	if inst, ok := cfg.Instances[cfg.GetDefaultInstanceName()]; ok {
-		return &inst
+	for i := range cfg.Instances {
+		if cfg.Instances[i].Name == cfg.GetDefaultInstanceName() {
+			return &cfg.Instances[i].Cfg
+		}
 	}
 	return nil
 }
