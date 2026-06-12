@@ -181,7 +181,16 @@ func universeInit() error {
 	if tao.universe.State() != Runnable {
 		return NewError(TaskRunTwice, "universe: init twice")
 	}
+
+	// 1. Run preload pipeline — each task loads config (YAML + ValidSelf),
+	//    then registers its setup task in the universe pipeline with correct
+	//    dependency ordering from RunAfter().
 	timeout, cancel := context.WithTimeout(context.Background(), UniverseInitTimeout)
 	defer cancel()
+	if err := tao.preload.Run(timeout, nil); err != nil {
+		return err
+	}
+
+	// 2. Run universe pipeline — all tasks registered with correct dependencies.
 	return tao.universe.Run(timeout, nil)
 }
