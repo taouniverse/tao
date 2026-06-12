@@ -29,14 +29,16 @@ import (
 type Universe struct {
 	sync.WaitGroup
 
-	Pipeline
-	universe Pipeline
+	Pipeline          // main pipeline (for tao.Run())
+	universe Pipeline // init pipeline, runs after preload with dependency ordering
+	preload  Pipeline // preload pipeline, each task populates RunAfters then registers in universe
 }
 
 // The Tao produced One; One produced Two; Two produced Three; Three produced All things.
 var tao = &Universe{
 	Pipeline: NewPipeline(ConfigKey),
 	universe: NewPipeline("universe"),
+	preload:  NewPipeline("preload"),
 }
 
 // Add of tao
@@ -113,7 +115,10 @@ func Register[T any, C any](
 
 	factory := NewBaseFactory[T]()
 
-	setup := func() error {
+	// preload runs before PipeTask creation to populate RunAfters
+	// (YAML overrides + code defaults) so that universe pipeline
+	// can determine correct initialization ordering.
+	preload := func() error {
 		err := LoadConfig(configKey, config)
 		if err != nil {
 			if e, ok := err.(ErrorTao); ok && e.Code() == ConfigNotFound {
@@ -127,7 +132,10 @@ func Register[T any, C any](
 		}
 
 		config.ValidSelf()
+		return nil
+	}
 
+	setup := func() error {
 		instances := config.GetInstances()
 		if len(instances) == 0 {
 			var zeroC C
@@ -157,34 +165,59 @@ func Register[T any, C any](
 		return SetConfig(configKey, config)
 	}
 
-	if err := registerToUniverse(configKey, config, setup); err != nil {
+	if err := registerToUniverse(configKey, config, preload, setup); err != nil {
 		return nil, err
 	}
 
 	return factory, nil
 }
 
-func registerToUniverse(configKey string, config Config, setup func() error) error {
+func registerToUniverse(configKey string, config Config, preload, setup func() error) error {
 	if config != nil && configKey != config.Name() {
 		return NewError(ParamInvalid, "universe: config's name should be same as task's name")
 	}
 
 	if configKey == ConfigKey {
+		if err := preload(); err != nil {
+			return err
+		}
 		return setup()
 	}
 
 	switch tao.universe.State() {
 	case Running, Over, Closed:
+		if err := preload(); err != nil {
+			return err
+		}
 		return setup()
 	default:
-		return tao.universe.Register(NewPipeTask(NewTask(configKey, func(ctx context.Context, param Parameter) (Parameter, error) {
+		// Register a preload task that:
+		//   1. Runs preload() to populate RunAfters from YAML + defaults
+		//   2. Registers the actual setup task in the universe pipeline
+		//      with correct dependency ordering.
+		if err := tao.preload.Register(NewPipeTask(NewTask(configKey, func(ctx context.Context, param Parameter) (Parameter, error) {
 			select {
 			case <-ctx.Done():
-				return param, NewError(ContextCanceled, "universe: fail to init %q", configKey)
+				return param, NewError(ContextCanceled, "universe: fail to preload %q", configKey)
 			default:
-				return param, setup()
+				if err := preload(); err != nil {
+					return param, err
+				}
+				// Now config.RunAfter() is fully populated — register in universe.
+				setupTask := NewTask(configKey, func(ctx context.Context, param Parameter) (Parameter, error) {
+					select {
+					case <-ctx.Done():
+						return param, NewError(ContextCanceled, "universe: fail to init %q", configKey)
+					default:
+						return param, setup()
+					}
+				})
+				return param, tao.universe.Register(NewPipeTask(setupTask, config.RunAfter()...))
 			}
-		})))
+		}))); err != nil {
+			return err
+		}
+		return nil
 	}
 }
 
