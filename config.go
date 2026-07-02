@@ -61,7 +61,7 @@ func LoadConfig(configKey string, config Config) error {
 	return nil
 }
 
-func looksLikeSingleInstance[C any](rawMap map[string]interface{}) bool {
+func looksLikeSingleInstance[C any](rawMap map[string]interface{}, reserved map[string]bool) bool {
 	var zeroC C
 	bytes, err := json.Marshal(zeroC)
 	if err != nil {
@@ -72,7 +72,7 @@ func looksLikeSingleInstance[C any](rawMap map[string]interface{}) bool {
 		return false
 	}
 	for k := range rawMap {
-		if reservedFields[k] {
+		if reserved[k] {
 			continue
 		}
 		if _, exists := structFields[k]; exists {
@@ -206,11 +206,20 @@ type MultiConfig[C any] interface {
 type BaseMultiConfig[C any] struct {
 	Instances []Instance[C] `json:"-" yaml:"-"`
 	Default   string        `json:"default_instance" yaml:"default_instance"`
+	// ExtraReserved lists additional YAML keys (besides "run_after" and
+	// "default_instance") that parseMultiConfig should skip when iterating
+	// over the config map. Use this for top-level scalar fields like "app_name".
+	ExtraReserved []string `json:"-" yaml:"-"`
 }
 
 // GetInstances returns the instances slice
 func (b *BaseMultiConfig[C]) GetInstances() []Instance[C] {
 	return b.Instances
+}
+
+// GetExtraReserved returns additional reserved field names.
+func (b *BaseMultiConfig[C]) GetExtraReserved() []string {
+	return b.ExtraReserved
 }
 
 // SetInstances sets the instances slice
@@ -289,7 +298,20 @@ func parseMultiConfig[C any](configKey string, config MultiConfig[C]) error {
 		return nil
 	}
 
-	if looksLikeSingleInstance[C](rawMap) {
+	// Merge built-in reserved fields with any ExtraReserved from the config.
+	allReserved := reservedFields
+	type extraReserver interface{ GetExtraReserved() []string }
+	if extra, ok := config.(extraReserver); ok && len(extra.GetExtraReserved()) > 0 {
+		allReserved = make(map[string]bool, len(reservedFields)+len(extra.GetExtraReserved()))
+		for k, v := range reservedFields {
+			allReserved[k] = v
+		}
+		for _, k := range extra.GetExtraReserved() {
+			allReserved[k] = true
+		}
+	}
+
+	if looksLikeSingleInstance[C](rawMap, allReserved) {
 		var single C
 		if err := decodeMapToStruct(rawMap, &single); err != nil {
 			return NewErrorWrapped("factory: fail to decode single config", err)
@@ -300,7 +322,7 @@ func parseMultiConfig[C any](configKey string, config MultiConfig[C]) error {
 
 	var instances []Instance[C]
 	for name, v := range rawMap {
-		if reservedFields[name] {
+		if allReserved[name] {
 			continue
 		}
 
